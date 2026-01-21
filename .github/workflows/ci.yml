@@ -50,8 +50,8 @@ jobs:
       
       - name: Run Black
         run: |
-          black src/ tests/
-          black --check src/ tests/
+          black --line-length 100 src/ tests/
+          black --check --line-length 100 src/ tests/
       
       - name: Run MyPy
         run: mypy src/
