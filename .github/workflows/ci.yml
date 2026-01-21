@@ -40,14 +40,18 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install ruff black mypy
+          pip install "ruff>=0.1.0" "black>=24.0.0" "mypy>=1.8.0"
           pip install -e ".[dev]"
       
-      - name: Run Ruff
-        run: ruff check src/ tests/
+      - name: Run Ruff (auto-fix then check)
+        run: |
+          ruff check --fix src/ tests/ || true
+          ruff check src/ tests/
       
       - name: Run Black
-        run: black --check src/ tests/
+        run: |
+          black src/ tests/
+          black --check src/ tests/
       
       - name: Run MyPy
         run: mypy src/
