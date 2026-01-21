@@ -116,8 +116,7 @@ class ChainOfCustody:
         self._conn = sqlite3.connect(self.db_path)
         self._conn.row_factory = sqlite3.Row
 
-        self._conn.executescript(
-            """
+        self._conn.executescript("""
             CREATE TABLE IF NOT EXISTS custody_events (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 event_id TEXT UNIQUE NOT NULL,
@@ -142,8 +141,7 @@ class ChainOfCustody:
 
             CREATE INDEX IF NOT EXISTS idx_timestamp
                 ON custody_events(timestamp);
-        """
-        )
+        """)
         self._conn.commit()
 
     def record_event(
@@ -450,20 +448,16 @@ class ChainOfCustody:
         cursor.execute("SELECT COUNT(*) as count FROM custody_events")
         total_events = cursor.fetchone()["count"]
 
-        cursor.execute(
-            """
+        cursor.execute("""
             SELECT action, COUNT(*) as count
             FROM custody_events GROUP BY action
-        """
-        )
+        """)
         by_action = {row["action"]: row["count"] for row in cursor.fetchall()}
 
-        cursor.execute(
-            """
+        cursor.execute("""
             SELECT actor_agency, COUNT(*) as count
             FROM custody_events GROUP BY actor_agency
-        """
-        )
+        """)
         by_agency = {row["actor_agency"]: row["count"] for row in cursor.fetchall()}
 
         return {

@@ -136,8 +136,7 @@ class HashRegistry:
         self._conn = sqlite3.connect(self.db_path)
         self._conn.row_factory = sqlite3.Row
 
-        self._conn.executescript(
-            """
+        self._conn.executescript("""
             CREATE TABLE IF NOT EXISTS hashes (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 hash_type TEXT NOT NULL,
@@ -180,8 +179,7 @@ class HashRegistry:
                 case_reference TEXT,
                 legal_basis TEXT
             );
-        """
-        )
+        """)
         self._conn.commit()
 
     def check(
@@ -484,30 +482,24 @@ class HashRegistry:
         cursor.execute("SELECT COUNT(*) as total FROM hashes")
         total_hashes = cursor.fetchone()["total"]
 
-        cursor.execute(
-            """
+        cursor.execute("""
             SELECT hash_type, COUNT(*) as count
             FROM hashes GROUP BY hash_type
-        """
-        )
+        """)
         by_type = {row["hash_type"]: row["count"] for row in cursor.fetchall()}
 
-        cursor.execute(
-            """
+        cursor.execute("""
             SELECT victim_status, COUNT(*) as count
             FROM hashes GROUP BY victim_status
-        """
-        )
+        """)
         by_victim_status = {row["victim_status"]: row["count"] for row in cursor.fetchall()}
 
         cursor.execute("SELECT COUNT(*) as total FROM query_log")
         total_queries = cursor.fetchone()["total"]
 
-        cursor.execute(
-            """
+        cursor.execute("""
             SELECT COUNT(*) as matches FROM query_log WHERE found = 1
-        """
-        )
+        """)
         total_matches = cursor.fetchone()["matches"]
 
         return {
