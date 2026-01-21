@@ -185,7 +185,7 @@ jobs:
     
     services:
       api:
-        image: ${{ needs.build.outputs.image-tag }}
+        image: ghcr.io/${{ github.repository }}:${{ github.sha }}
         ports:
           - 8000:8000
         options: >-
