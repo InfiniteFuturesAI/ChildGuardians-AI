@@ -185,7 +185,7 @@ jobs:
     
     services:
       api:
-        image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+        image: ghcr.io/infinitefuturesai/childgaurdians-ai:${{ github.sha }}
         ports:
           - 8000:8000
         options: >-
