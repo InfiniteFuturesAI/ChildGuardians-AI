@@ -33,7 +33,11 @@ def main():
 
     # Server command
     server_parser = subparsers.add_parser("serve", help="Start API server")
-    server_parser.add_argument("--host", default="0.0.0.0", help="Host to bind to")
+    server_parser.add_argument(
+        "--host",
+        default="127.0.0.1",  # nosec B104 - localhost is safe default; use 0.0.0.0 for containers
+        help="Host to bind to (use 0.0.0.0 for container/network access)",
+    )
     server_parser.add_argument("--port", type=int, default=8000, help="Port to bind to")
     server_parser.add_argument("--reload", action="store_true", help="Enable auto-reload")
 
