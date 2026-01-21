@@ -24,7 +24,6 @@ from child_guardians.cli import (
 from child_guardians.core.evidence_object import (
     CollectionDetails,
     EvidenceObject,
-    EvidenceStatus,
     JurisdictionMap,
     LegalBasis,
     LegalBasisType,
@@ -52,13 +51,12 @@ class TestMainParser:
         """Test serve command argument parsing."""
         with patch.object(
             sys, "argv", ["child-guardians", "serve", "--host", "0.0.0.0", "--port", "9000"]
-        ):
-            with patch("child_guardians.cli.cmd_serve") as mock_serve:
-                main()
-                mock_serve.assert_called_once()
-                args = mock_serve.call_args[0][0]
-                assert args.host == "0.0.0.0"
-                assert args.port == 9000
+        ), patch("child_guardians.cli.cmd_serve") as mock_serve:
+            main()
+            mock_serve.assert_called_once()
+            args = mock_serve.call_args[0][0]
+            assert args.host == "0.0.0.0"
+            assert args.port == 9000
 
 
 class TestCmdHash:
@@ -352,8 +350,9 @@ class TestCmdServe:
 
     def test_serve_calls_uvicorn(self, capsys):
         """Test that serve command calls uvicorn."""
-        with patch.dict("sys.modules", {"uvicorn": MagicMock()}) as modules:
+        with patch.dict("sys.modules", {"uvicorn": MagicMock()}):
             import importlib
+
             import child_guardians.cli
 
             importlib.reload(child_guardians.cli)

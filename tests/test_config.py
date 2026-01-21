@@ -9,8 +9,6 @@ import os
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
-
 from child_guardians.config import (
     AuditConfig,
     Config,
