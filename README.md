@@ -116,7 +116,12 @@ See: [Evidence Object Specification](./specs/EVIDENCE_OBJECT.md)
 
 ## License
 
-[To be determined based on adoption strategy]
+This project is licensed under the **PolyForm Noncommercial License 1.0.0**.
+
+It is provided as a public-interest system for law enforcement, child protection, and judicial review.
+Commercial use is explicitly prohibited.
+
+See the [LICENSE](./LICENSE) file for full terms.
 
 ---
 
