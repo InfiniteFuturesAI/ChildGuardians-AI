@@ -49,9 +49,7 @@ jobs:
           ruff check src/ tests/
       
       - name: Run Black
-        run: |
-          black --line-length 100 src/ tests/
-          black --check --line-length 100 src/ tests/
+        run: black --line-length 100 src/ tests/
       
       - name: Run MyPy
         run: mypy src/
