@@ -4,6 +4,14 @@
 
 > **"This system never identifies people. It preserves evidence of material."**
 
+---
+
+**Status:** ✅ **VALIDATED** - Core evidence systems tested (80 tests passing)  
+**License:** PolyForm Noncommercial 1.0.0  
+**Python:** 3.11+ required
+
+---
+
 ## Mission
 
 A law-enforcement-first global evidence ecosystem designed to protect children from exploitation while preserving:

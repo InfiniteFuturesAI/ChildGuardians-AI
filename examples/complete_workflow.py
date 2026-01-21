@@ -2,6 +2,9 @@
 """
 CHILD GUARDIANS - Example: Complete Evidence Workflow
 
+⚠️ DEMO ONLY - All data in this example is synthetic.
+Do not use these credentials, case numbers, or identifiers in production.
+
 This example demonstrates the complete workflow from evidence collection
 to court-ready export.
 
@@ -160,9 +163,9 @@ def main():
 
     validation_result = evidence.validate()
     print(f"  Validation Passed: {validation_result['passed']}")
-    if not validation_result['passed']:
+    if not validation_result["passed"]:
         print(f"  Issues: {len(validation_result['issues'])}")
-        for issue in validation_result['issues'][:3]:
+        for issue in validation_result["issues"][:3]:
             print(f"    - {issue}")
 
     print("\n[4] Running Defense Simulation...")
@@ -173,22 +176,22 @@ def main():
     print(f"  Score: {defense_result['score']}/100")
     print(f"  Passed: {defense_result['passed']}")
 
-    if defense_result['blocking_failures']:
+    if defense_result["blocking_failures"]:
         print(f"  Blocking Failures: {len(defense_result['blocking_failures'])}")
-        for failure in defense_result['blocking_failures']:
+        for failure in defense_result["blocking_failures"]:
             print(f"    ✗ {failure['challenge_id']}: {failure['question']}")
 
-    if defense_result['major_failures']:
+    if defense_result["major_failures"]:
         print(f"  Major Failures: {len(defense_result['major_failures'])}")
 
-    if defense_result['warnings']:
+    if defense_result["warnings"]:
         print(f"  Warnings: {len(defense_result['warnings'])}")
 
     print(f"\n  Recommendation: {defense_result['recommendation']}")
 
     print("\n[5] Sealing Evidence...")
 
-    if defense_result['passed']:
+    if defense_result["passed"]:
         content_hash = evidence.seal(private_key, collection.officer_id)
         print(f"  Evidence Sealed: {content_hash[:32]}...")
 
@@ -214,7 +217,9 @@ def main():
     chain = custody.get_chain(evidence.evidence_id)
     print(f"  Total Events: {len(chain)}")
     for event in chain:
-        print(f"    {event.timestamp.strftime('%H:%M:%S')} - {event.action.value} by {event.actor_name}")
+        print(
+            f"    {event.timestamp.strftime('%H:%M:%S')} - {event.action.value} by {event.actor_name}"
+        )
 
     # Verify chain integrity
     verify_result = custody.verify_chain(evidence.evidence_id)
