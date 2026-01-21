@@ -18,14 +18,13 @@ import hashlib
 import json
 import sqlite3
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.asymmetric import ed25519
 from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives.asymmetric import ed25519
 
 
 class CustodyAction(Enum):
@@ -55,7 +54,7 @@ class CustodyEvent:
     event_hash: str             # Hash of this event
     signature: bytes            # Actor's signature
     details: dict[str, Any] = field(default_factory=dict)
-    
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "event_id": self.event_id,
@@ -70,7 +69,7 @@ class CustodyEvent:
             "signature": self.signature.hex() if self.signature else None,
             "details": self.details,
         }
-    
+
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> CustodyEvent:
         return cls(
@@ -91,30 +90,30 @@ class CustodyEvent:
 class ChainOfCustody:
     """
     Append-only chain of custody manager.
-    
+
     Maintains an immutable, cryptographically-linked log of all
     evidence handling events. The chain cannot be modified after
     events are recorded.
     """
-    
+
     GENESIS_HASH = "0" * 64  # Genesis block previous hash
-    
+
     def __init__(self, db_path: str | Path = ":memory:"):
         """
         Initialize chain of custody.
-        
+
         Args:
             db_path: Path to SQLite database, or ":memory:" for testing
         """
         self.db_path = db_path
-        self._conn: Optional[sqlite3.Connection] = None
+        self._conn: sqlite3.Connection | None = None
         self._init_database()
-    
+
     def _init_database(self) -> None:
         """Initialize database schema."""
         self._conn = sqlite3.connect(self.db_path)
         self._conn.row_factory = sqlite3.Row
-        
+
         self._conn.executescript("""
             CREATE TABLE IF NOT EXISTS custody_events (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -131,18 +130,18 @@ class ChainOfCustody:
                 details TEXT,
                 created_at TEXT NOT NULL
             );
-            
-            CREATE INDEX IF NOT EXISTS idx_evidence_id 
+
+            CREATE INDEX IF NOT EXISTS idx_evidence_id
                 ON custody_events(evidence_id);
-            
+
             CREATE INDEX IF NOT EXISTS idx_event_hash
                 ON custody_events(event_hash);
-            
+
             CREATE INDEX IF NOT EXISTS idx_timestamp
                 ON custody_events(timestamp);
         """)
         self._conn.commit()
-    
+
     def record_event(
         self,
         evidence_id: str,
@@ -150,12 +149,12 @@ class ChainOfCustody:
         actor_id: str,
         actor_name: str,
         actor_agency: str,
-        private_key: Optional[ed25519.Ed25519PrivateKey] = None,
-        details: Optional[dict[str, Any]] = None,
+        private_key: ed25519.Ed25519PrivateKey | None = None,
+        details: dict[str, Any] | None = None,
     ) -> CustodyEvent:
         """
         Record a new custody event.
-        
+
         Args:
             evidence_id: ID of the evidence being handled
             action: Type of action being recorded
@@ -164,18 +163,18 @@ class ChainOfCustody:
             actor_agency: Agency of the person
             private_key: Optional key to sign the event
             details: Optional additional details
-        
+
         Returns:
             The recorded CustodyEvent
         """
         import uuid
-        
-        timestamp = datetime.now(timezone.utc)
+
+        timestamp = datetime.now(UTC)
         event_id = str(uuid.uuid4())
-        
+
         # Get previous hash
         previous_hash = self._get_last_hash(evidence_id)
-        
+
         # Compute event hash
         event_data = {
             "event_id": event_id,
@@ -191,12 +190,12 @@ class ChainOfCustody:
         event_hash = hashlib.sha256(
             json.dumps(event_data, sort_keys=True).encode()
         ).hexdigest()
-        
+
         # Sign if key provided
         signature = b""
         if private_key:
             signature = private_key.sign(event_hash.encode())
-        
+
         # Create event
         event = CustodyEvent(
             event_id=event_id,
@@ -211,25 +210,25 @@ class ChainOfCustody:
             signature=signature,
             details=details or {},
         )
-        
+
         # Store in database
         self._store_event(event)
-        
+
         return event
-    
+
     def _get_last_hash(self, evidence_id: str) -> str:
         """Get the hash of the last event for this evidence."""
         cursor = self._conn.cursor()
         cursor.execute("""
-            SELECT event_hash FROM custody_events 
+            SELECT event_hash FROM custody_events
             WHERE evidence_id = ?
             ORDER BY timestamp DESC, id DESC
             LIMIT 1
         """, (evidence_id,))
-        
+
         row = cursor.fetchone()
         return row["event_hash"] if row else self.GENESIS_HASH
-    
+
     def _store_event(self, event: CustodyEvent) -> None:
         """Store event in database."""
         cursor = self._conn.cursor()
@@ -250,27 +249,27 @@ class ChainOfCustody:
             event.event_hash,
             event.signature,
             json.dumps(event.details),
-            datetime.now(timezone.utc).isoformat(),
+            datetime.now(UTC).isoformat(),
         ))
         self._conn.commit()
-    
+
     def get_chain(self, evidence_id: str) -> list[CustodyEvent]:
         """
         Get complete chain of custody for evidence.
-        
+
         Args:
             evidence_id: ID of the evidence
-        
+
         Returns:
             List of CustodyEvents in chronological order
         """
         cursor = self._conn.cursor()
         cursor.execute("""
-            SELECT * FROM custody_events 
+            SELECT * FROM custody_events
             WHERE evidence_id = ?
             ORDER BY timestamp ASC, id ASC
         """, (evidence_id,))
-        
+
         events = []
         for row in cursor.fetchall():
             events.append(CustodyEvent(
@@ -286,41 +285,41 @@ class ChainOfCustody:
                 signature=row["signature"] or b"",
                 details=json.loads(row["details"]) if row["details"] else {},
             ))
-        
+
         return events
-    
+
     def verify_chain(
         self,
         evidence_id: str,
-        public_keys: Optional[dict[str, ed25519.Ed25519PublicKey]] = None,
+        public_keys: dict[str, ed25519.Ed25519PublicKey] | None = None,
     ) -> dict[str, Any]:
         """
         Verify the integrity of a chain of custody.
-        
+
         Checks:
         1. Hash chain is unbroken
         2. Event hashes are correct
         3. Signatures are valid (if public keys provided)
-        
+
         Args:
             evidence_id: ID of the evidence
             public_keys: Optional dict of actor_id -> public_key for signature verification
-        
+
         Returns:
             Verification result with any issues found
         """
         events = self.get_chain(evidence_id)
-        
+
         if not events:
             return {
                 "valid": False,
                 "error": "No custody events found",
                 "events_checked": 0,
             }
-        
+
         issues = []
         previous_hash = self.GENESIS_HASH
-        
+
         for i, event in enumerate(events):
             # Check chain link
             if event.previous_hash != previous_hash:
@@ -331,7 +330,7 @@ class ChainOfCustody:
                     "expected_previous": previous_hash,
                     "actual_previous": event.previous_hash,
                 })
-            
+
             # Verify event hash
             event_data = {
                 "event_id": event.event_id,
@@ -347,7 +346,7 @@ class ChainOfCustody:
             computed_hash = hashlib.sha256(
                 json.dumps(event_data, sort_keys=True).encode()
             ).hexdigest()
-            
+
             if computed_hash != event.event_hash:
                 issues.append({
                     "event_index": i,
@@ -356,7 +355,7 @@ class ChainOfCustody:
                     "expected_hash": computed_hash,
                     "actual_hash": event.event_hash,
                 })
-            
+
             # Verify signature if public key available
             if public_keys and event.actor_id in public_keys and event.signature:
                 try:
@@ -370,9 +369,9 @@ class ChainOfCustody:
                         "event_id": event.event_id,
                         "issue": "invalid_signature",
                     })
-            
+
             previous_hash = event.event_hash
-        
+
         return {
             "valid": len(issues) == 0,
             "events_checked": len(events),
@@ -380,31 +379,31 @@ class ChainOfCustody:
             "first_event": events[0].timestamp.isoformat() if events else None,
             "last_event": events[-1].timestamp.isoformat() if events else None,
         }
-    
+
     def get_events_by_actor(
         self,
         actor_id: str,
-        start_time: Optional[datetime] = None,
-        end_time: Optional[datetime] = None,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
     ) -> list[CustodyEvent]:
         """Get all custody events by a specific actor."""
         cursor = self._conn.cursor()
-        
+
         query = "SELECT * FROM custody_events WHERE actor_id = ?"
         params: list[Any] = [actor_id]
-        
+
         if start_time:
             query += " AND timestamp >= ?"
             params.append(start_time.isoformat())
-        
+
         if end_time:
             query += " AND timestamp <= ?"
             params.append(end_time.isoformat())
-        
+
         query += " ORDER BY timestamp ASC"
-        
+
         cursor.execute(query, params)
-        
+
         events = []
         for row in cursor.fetchall():
             events.append(CustodyEvent(
@@ -420,42 +419,42 @@ class ChainOfCustody:
                 signature=row["signature"] or b"",
                 details=json.loads(row["details"]) if row["details"] else {},
             ))
-        
+
         return events
-    
+
     def get_statistics(self) -> dict[str, Any]:
         """Get chain of custody statistics."""
         cursor = self._conn.cursor()
-        
+
         cursor.execute("SELECT COUNT(DISTINCT evidence_id) as count FROM custody_events")
         unique_evidence = cursor.fetchone()["count"]
-        
+
         cursor.execute("SELECT COUNT(*) as count FROM custody_events")
         total_events = cursor.fetchone()["count"]
-        
+
         cursor.execute("""
-            SELECT action, COUNT(*) as count 
+            SELECT action, COUNT(*) as count
             FROM custody_events GROUP BY action
         """)
         by_action = {row["action"]: row["count"] for row in cursor.fetchall()}
-        
+
         cursor.execute("""
-            SELECT actor_agency, COUNT(*) as count 
+            SELECT actor_agency, COUNT(*) as count
             FROM custody_events GROUP BY actor_agency
         """)
         by_agency = {row["actor_agency"]: row["count"] for row in cursor.fetchall()}
-        
+
         return {
             "unique_evidence_items": unique_evidence,
             "total_events": total_events,
             "events_by_action": by_action,
             "events_by_agency": by_agency,
         }
-    
+
     def export_chain(self, evidence_id: str) -> dict[str, Any]:
         """
         Export complete chain of custody for court presentation.
-        
+
         Returns a court-ready document with:
         - Complete event timeline
         - Verification status
@@ -463,10 +462,10 @@ class ChainOfCustody:
         """
         events = self.get_chain(evidence_id)
         verification = self.verify_chain(evidence_id)
-        
+
         return {
             "evidence_id": evidence_id,
-            "export_timestamp": datetime.now(timezone.utc).isoformat(),
+            "export_timestamp": datetime.now(UTC).isoformat(),
             "chain_valid": verification["valid"],
             "total_events": len(events),
             "first_custody": events[0].timestamp.isoformat() if events else None,
@@ -474,12 +473,12 @@ class ChainOfCustody:
             "events": [e.to_dict() for e in events],
             "verification": verification,
             "summary": {
-                "actors": list(set(e.actor_id for e in events)),
-                "agencies": list(set(e.actor_agency for e in events)),
-                "actions": list(set(e.action.value for e in events)),
+                "actors": list({e.actor_id for e in events}),
+                "agencies": list({e.actor_agency for e in events}),
+                "actions": list({e.action.value for e in events}),
             },
         }
-    
+
     def close(self) -> None:
         """Close database connection."""
         if self._conn:

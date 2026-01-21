@@ -10,7 +10,6 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
 
 
 @dataclass
@@ -37,12 +36,12 @@ class LoggingConfig:
     """Logging configuration."""
     level: str = "INFO"
     format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    file: Optional[str] = None
+    file: str | None = None
     max_bytes: int = 10_000_000  # 10MB
     backup_count: int = 5
 
 
-@dataclass 
+@dataclass
 class AuditConfig:
     """Audit logging configuration."""
     enabled: bool = True
@@ -62,94 +61,94 @@ class HashRegistryConfig:
 @dataclass
 class Config:
     """Main application configuration."""
-    
+
     # Core settings
     app_name: str = "CHILD GUARDIANS"
     version: str = "0.1.0"
     environment: str = "development"
     debug: bool = False
-    
+
     # Sub-configurations
     database: DatabaseConfig = field(default_factory=DatabaseConfig)
     security: SecurityConfig = field(default_factory=SecurityConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
     audit: AuditConfig = field(default_factory=AuditConfig)
     hash_registry: HashRegistryConfig = field(default_factory=HashRegistryConfig)
-    
+
     # API settings
     api_prefix: str = "/api/v1"
     cors_origins: list[str] = field(default_factory=lambda: ["*"])
-    
+
     # Data directories
     data_dir: Path = field(default_factory=lambda: Path("data"))
     evidence_dir: Path = field(default_factory=lambda: Path("data/evidence"))
-    
+
     @classmethod
-    def from_env(cls) -> "Config":
+    def from_env(cls) -> Config:
         """Load configuration from environment variables."""
         config = cls()
-        
+
         # Core settings
         config.environment = os.getenv("ENVIRONMENT", "development")
         config.debug = os.getenv("DEBUG", "false").lower() == "true"
-        
+
         # Database
         config.database.url = os.getenv("DATABASE_URL", config.database.url)
         config.database.pool_size = int(os.getenv("DB_POOL_SIZE", str(config.database.pool_size)))
-        
+
         # Security
         config.security.secret_key = os.getenv("SECRET_KEY", "")
         config.security.require_tls = os.getenv("REQUIRE_TLS", "true").lower() == "true"
-        
+
         allowed_hosts = os.getenv("ALLOWED_HOSTS", "")
         if allowed_hosts:
             config.security.allowed_hosts = allowed_hosts.split(",")
-        
+
         # Logging
         config.logging.level = os.getenv("LOG_LEVEL", config.logging.level)
         config.logging.file = os.getenv("LOG_FILE", None)
-        
+
         # Audit
         config.audit.enabled = os.getenv("AUDIT_ENABLED", "true").lower() == "true"
         config.audit.retention_days = int(os.getenv("AUDIT_RETENTION_DAYS", str(config.audit.retention_days)))
-        
+
         # Hash registry
         config.hash_registry.db_path = os.getenv("HASH_REGISTRY_PATH", config.hash_registry.db_path)
-        
+
         # API settings
         cors_origins = os.getenv("CORS_ORIGINS", "")
         if cors_origins:
             config.cors_origins = cors_origins.split(",")
-        
+
         # Data directories
         data_dir = os.getenv("DATA_DIR", "data")
         config.data_dir = Path(data_dir)
         config.evidence_dir = config.data_dir / "evidence"
-        
+
         return config
-    
+
     def validate(self) -> list[str]:
         """Validate configuration, returning list of errors."""
         errors = []
-        
+
         if self.environment == "production":
             if not self.security.secret_key:
                 errors.append("SECRET_KEY must be set in production")
-            
+
             if not self.security.require_tls:
                 errors.append("TLS should be required in production")
-            
+
             if "*" in self.security.allowed_hosts:
                 errors.append("ALLOWED_HOSTS should be restricted in production")
-            
+
             if self.debug:
                 errors.append("DEBUG should be False in production")
-        
+
         return errors
 
 
 # Global configuration instance
-_config: Optional[Config] = None
+_config: Config | None = None
 
 
 def get_config() -> Config:

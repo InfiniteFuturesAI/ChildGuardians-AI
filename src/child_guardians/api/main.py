@@ -7,33 +7,31 @@ integration. All endpoints require authentication and log access.
 
 from __future__ import annotations
 
-import json
 import logging
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
-from typing import Any, Optional
+from datetime import UTC, datetime
+from typing import Any
 
-from fastapi import FastAPI, HTTPException, Depends, Header, Request
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
+from child_guardians.core.chain_of_custody import ChainOfCustody, CustodyAction
+from child_guardians.core.defense_simulator import DefenseSimulator
 from child_guardians.core.evidence_object import (
+    CollectionDetails,
     EvidenceObject,
+    JurisdictionMap,
     LegalBasis,
     LegalBasisType,
-    CollectionDetails,
-    JurisdictionMap,
     MaterialHash,
 )
 from child_guardians.core.hash_registry import (
     HashRegistry,
-    HashType,
     MatchConfidence,
     VictimStatus,
 )
-from child_guardians.core.chain_of_custody import ChainOfCustody, CustodyAction
-from child_guardians.core.defense_simulator import DefenseSimulator
 
 # Configure logging
 logging.basicConfig(
@@ -45,32 +43,32 @@ logger = logging.getLogger("child_guardians.api")
 
 # ===== Global Resources =====
 
-registry: Optional[HashRegistry] = None
-custody: Optional[ChainOfCustody] = None
-simulator: Optional[DefenseSimulator] = None
+registry: HashRegistry | None = None
+custody: ChainOfCustody | None = None
+simulator: DefenseSimulator | None = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize and cleanup resources."""
     global registry, custody, simulator
-    
+
     # Initialize components
     # In production, these would connect to persistent storage
     registry = HashRegistry()
     custody = ChainOfCustody()
     simulator = DefenseSimulator()
-    
+
     logger.info("CHILD GUARDIANS API initialized")
-    
+
     yield
-    
+
     # Cleanup
     if registry:
         registry.close()
     if custody:
         custody.close()
-    
+
     logger.info("CHILD GUARDIANS API shutdown")
 
 
@@ -109,16 +107,16 @@ class HashCheckRequest(BaseModel):
     """Request to check a hash."""
     hash_type: str = Field(..., description="Hash type: sha256, sha3_512, photodna, pdq")
     hash_value: str = Field(..., description="Hex-encoded hash value")
-    case_reference: Optional[str] = Field(None, description="Optional case number")
-    legal_basis: Optional[str] = Field(None, description="Optional legal authority reference")
+    case_reference: str | None = Field(None, description="Optional case number")
+    legal_basis: str | None = Field(None, description="Optional legal authority reference")
 
 
 class HashCheckResponse(BaseModel):
     """Response from hash check."""
     found: bool
-    confidence: Optional[str] = None
-    victim_status: Optional[str] = None
-    category: Optional[str] = None
+    confidence: str | None = None
+    victim_status: str | None = None
+    category: str | None = None
     evidence_available: bool = False
     jurisdiction_flags: list[str] = []
 
@@ -126,8 +124,8 @@ class HashCheckResponse(BaseModel):
 class BatchHashCheckRequest(BaseModel):
     """Request to check multiple hashes."""
     hashes: list[HashCheckRequest]
-    case_reference: Optional[str] = None
-    legal_basis: Optional[str] = None
+    case_reference: str | None = None
+    legal_basis: str | None = None
 
 
 class HashRegisterRequest(BaseModel):
@@ -137,8 +135,8 @@ class HashRegisterRequest(BaseModel):
     confidence: str = "confirmed"
     victim_status: str = "unknown"
     category: str = "csam_confirmed"
-    series_id: Optional[str] = None
-    jurisdictions: Optional[list[str]] = None
+    series_id: str | None = None
+    jurisdictions: list[str] | None = None
 
 
 class EvidenceCreateRequest(BaseModel):
@@ -150,16 +148,16 @@ class EvidenceCreateRequest(BaseModel):
     legal_basis_issued_by: str
     legal_basis_issued_date: str
     legal_basis_scope: str
-    legal_basis_expires: Optional[str] = None
+    legal_basis_expires: str | None = None
     collection_location: str
     tool_used: str
     tool_version: str
     tool_hash: str = ""
     witness_present: bool = False
-    witness_name: Optional[str] = None
+    witness_name: str | None = None
     primary_jurisdiction: str
     hosting_country: str
-    victim_country: Optional[str] = None
+    victim_country: str | None = None
 
 
 class MaterialHashRequest(BaseModel):
@@ -174,7 +172,7 @@ class CustodyEventRequest(BaseModel):
     """Request to record a custody event."""
     evidence_id: str
     action: str
-    details: Optional[dict[str, Any]] = None
+    details: dict[str, Any] | None = None
 
 
 class DefenseSimulationResponse(BaseModel):
@@ -209,19 +207,19 @@ async def get_auth(
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     """Log all API requests for audit trail."""
-    start_time = datetime.now(timezone.utc)
-    
+    start_time = datetime.now(UTC)
+
     response = await call_next(request)
-    
-    duration = (datetime.now(timezone.utc) - start_time).total_seconds()
-    
+
+    duration = (datetime.now(UTC) - start_time).total_seconds()
+
     logger.info(
         f"{request.method} {request.url.path} - "
         f"Status: {response.status_code} - "
         f"Duration: {duration:.3f}s - "
         f"Agency: {request.headers.get('x-agency-id', 'unknown')}"
     )
-    
+
     return response
 
 
@@ -232,7 +230,7 @@ async def health_check():
     """Health check endpoint."""
     return {
         "status": "healthy",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "version": "0.1.0",
     }
 
@@ -241,12 +239,12 @@ async def health_check():
 async def readiness_check():
     """Readiness check for Kubernetes."""
     global registry, custody, simulator
-    
+
     ready = all([registry, custody, simulator])
-    
+
     if not ready:
         raise HTTPException(status_code=503, detail="Service not ready")
-    
+
     return {
         "ready": True,
         "components": {
@@ -266,14 +264,14 @@ async def check_hash(
 ):
     """
     Check if a hash exists in the known CSAM registry.
-    
+
     All queries are logged for audit purposes.
     """
     global registry
-    
+
     if not registry:
         raise HTTPException(status_code=503, detail="Registry not initialized")
-    
+
     result = registry.check(
         hash_type=request.hash_type,
         hash_value=request.hash_value,
@@ -282,10 +280,10 @@ async def check_hash(
         case_reference=request.case_reference,
         legal_basis=request.legal_basis,
     )
-    
+
     if not result.found:
         return HashCheckResponse(found=False)
-    
+
     return HashCheckResponse(
         found=True,
         confidence=result.record.confidence.value if result.record else None,
@@ -303,12 +301,12 @@ async def batch_check_hashes(
 ):
     """Check multiple hashes in a single request."""
     global registry
-    
+
     if not registry:
         raise HTTPException(status_code=503, detail="Registry not initialized")
-    
+
     hashes = [(h.hash_type, h.hash_value) for h in request.hashes]
-    
+
     results = registry.batch_check(
         hashes=hashes,
         querying_agency=auth.agency_id,
@@ -316,7 +314,7 @@ async def batch_check_hashes(
         case_reference=request.case_reference,
         legal_basis=request.legal_basis,
     )
-    
+
     return {
         "total": len(results),
         "matches": sum(1 for r in results if r.found),
@@ -331,14 +329,14 @@ async def register_hash(
 ):
     """
     Register a new hash in the registry.
-    
+
     Requires appropriate authority level.
     """
     global registry
-    
+
     if not registry:
         raise HTTPException(status_code=503, detail="Registry not initialized")
-    
+
     success = registry.register(
         hash_type=request.hash_type,
         hash_value=request.hash_value,
@@ -349,15 +347,15 @@ async def register_hash(
         series_id=request.series_id,
         jurisdictions=request.jurisdictions,
     )
-    
+
     if not success:
         raise HTTPException(status_code=409, detail="Hash already exists")
-    
+
     logger.info(
         f"Hash registered by {auth.officer_id} ({auth.agency_id}): "
         f"{request.hash_type}:{request.hash_value[:16]}..."
     )
-    
+
     return {"registered": True, "hash_type": request.hash_type}
 
 
@@ -365,10 +363,10 @@ async def register_hash(
 async def hash_statistics(auth: AgencyAuth = Depends(get_auth)):
     """Get registry statistics."""
     global registry
-    
+
     if not registry:
         raise HTTPException(status_code=503, detail="Registry not initialized")
-    
+
     return registry.get_statistics()
 
 
@@ -384,7 +382,7 @@ async def create_evidence(
     auth: AgencyAuth = Depends(get_auth),
 ):
     """Create a new evidence object."""
-    
+
     legal_basis = LegalBasis(
         basis_type=LegalBasisType(request.legal_basis_type),
         reference=request.legal_basis_reference,
@@ -393,14 +391,14 @@ async def create_evidence(
         scope=request.legal_basis_scope,
         expires=datetime.fromisoformat(request.legal_basis_expires) if request.legal_basis_expires else None,
     )
-    
+
     collection_details = CollectionDetails(
         officer_id=auth.officer_id,
         officer_name=auth.officer_name,
         badge_number=auth.badge_number,
         agency=auth.agency_id,
         agency_unit="",  # Could be added to auth
-        collection_time=datetime.now(timezone.utc),
+        collection_time=datetime.now(UTC),
         collection_location=request.collection_location,
         tool_used=request.tool_used,
         tool_version=request.tool_version,
@@ -408,13 +406,13 @@ async def create_evidence(
         witness_present=request.witness_present,
         witness_name=request.witness_name,
     )
-    
+
     jurisdiction = JurisdictionMap(
         primary_jurisdiction=request.primary_jurisdiction,
         hosting_country=request.hosting_country,
         victim_country=request.victim_country,
     )
-    
+
     evidence = EvidenceObject(
         case_number=request.case_number,
         evidence_type=request.evidence_type,
@@ -422,15 +420,15 @@ async def create_evidence(
         collection_details=collection_details,
         jurisdiction=jurisdiction,
     )
-    
+
     # Store evidence
     evidence_store[evidence.evidence_id] = evidence
-    
+
     logger.info(
         f"Evidence created by {auth.officer_id}: "
         f"{evidence.evidence_id} for case {request.case_number}"
     )
-    
+
     return {
         "evidence_id": evidence.evidence_id,
         "case_number": evidence.case_number,
@@ -446,12 +444,12 @@ async def get_evidence(
 ):
     """Get evidence object by ID."""
     global custody
-    
+
     if evidence_id not in evidence_store:
         raise HTTPException(status_code=404, detail="Evidence not found")
-    
+
     evidence = evidence_store[evidence_id]
-    
+
     # Log access
     if custody:
         custody.record_event(
@@ -461,7 +459,7 @@ async def get_evidence(
             actor_name=auth.officer_name,
             actor_agency=auth.agency_id,
         )
-    
+
     return evidence.to_dict()
 
 
@@ -472,12 +470,12 @@ async def add_evidence_hash(
     auth: AgencyAuth = Depends(get_auth),
 ):
     """Add a material hash to evidence object."""
-    
+
     if evidence_id not in evidence_store:
         raise HTTPException(status_code=404, detail="Evidence not found")
-    
+
     evidence = evidence_store[evidence_id]
-    
+
     material_hash = MaterialHash(
         hash_type=request.hash_type,
         hash_value=request.hash_value,
@@ -485,12 +483,12 @@ async def add_evidence_hash(
         source_path=request.source_path,
         computed_by=auth.officer_id,
     )
-    
+
     try:
         evidence.add_material_hash(material_hash)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    
+        raise HTTPException(status_code=400, detail=str(e)) from None
+
     return {
         "added": True,
         "hash_count": len(evidence.material_hashes),
@@ -503,17 +501,17 @@ async def validate_evidence(
     auth: AgencyAuth = Depends(get_auth),
 ):
     """Run pre-flight validation on evidence."""
-    
+
     if evidence_id not in evidence_store:
         raise HTTPException(status_code=404, detail="Evidence not found")
-    
+
     evidence = evidence_store[evidence_id]
-    
+
     try:
         result = evidence.validate()
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    
+        raise HTTPException(status_code=400, detail=str(e)) from None
+
     return result
 
 
@@ -524,20 +522,20 @@ async def simulate_defense(
 ) -> DefenseSimulationResponse:
     """Run defense attorney simulation against evidence."""
     global simulator
-    
+
     if not simulator:
         raise HTTPException(status_code=503, detail="Simulator not initialized")
-    
+
     if evidence_id not in evidence_store:
         raise HTTPException(status_code=404, detail="Evidence not found")
-    
+
     evidence = evidence_store[evidence_id]
-    
+
     try:
         result = evidence.run_defense_simulation(simulator)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    
+        raise HTTPException(status_code=400, detail=str(e)) from None
+
     return DefenseSimulationResponse(
         passed=result["passed"],
         score=result["score"],
@@ -557,12 +555,12 @@ async def get_custody_chain(
 ):
     """Get complete chain of custody for evidence."""
     global custody
-    
+
     if not custody:
         raise HTTPException(status_code=503, detail="Custody not initialized")
-    
+
     events = custody.get_chain(evidence_id)
-    
+
     return {
         "evidence_id": evidence_id,
         "events": [e.to_dict() for e in events],
@@ -577,10 +575,10 @@ async def record_custody_event(
 ):
     """Record a custody event."""
     global custody
-    
+
     if not custody:
         raise HTTPException(status_code=503, detail="Custody not initialized")
-    
+
     event = custody.record_event(
         evidence_id=request.evidence_id,
         action=CustodyAction(request.action),
@@ -589,7 +587,7 @@ async def record_custody_event(
         actor_agency=auth.agency_id,
         details=request.details,
     )
-    
+
     return event.to_dict()
 
 
@@ -600,10 +598,10 @@ async def verify_custody_chain(
 ):
     """Verify integrity of custody chain."""
     global custody
-    
+
     if not custody:
         raise HTTPException(status_code=503, detail="Custody not initialized")
-    
+
     return custody.verify_chain(evidence_id)
 
 
@@ -614,10 +612,10 @@ async def export_custody_chain(
 ):
     """Export chain of custody for court."""
     global custody
-    
+
     if not custody:
         raise HTTPException(status_code=503, detail="Custody not initialized")
-    
+
     return custody.export_chain(evidence_id)
 
 
@@ -625,19 +623,19 @@ async def export_custody_chain(
 
 @app.get("/api/v1/audit/queries")
 async def get_query_log(
-    agency: Optional[str] = None,
+    agency: str | None = None,
     auth: AgencyAuth = Depends(get_auth),
 ):
     """Get hash query audit log."""
     global registry
-    
+
     if not registry:
         raise HTTPException(status_code=503, detail="Registry not initialized")
-    
+
     # Restrict to own agency unless admin
     if agency and agency != auth.agency_id:
         raise HTTPException(status_code=403, detail="Can only view own agency logs")
-    
+
     return registry.get_query_log(agency=auth.agency_id)
 
 
@@ -645,10 +643,10 @@ async def get_query_log(
 async def get_custody_statistics(auth: AgencyAuth = Depends(get_auth)):
     """Get custody statistics."""
     global custody
-    
+
     if not custody:
         raise HTTPException(status_code=503, detail="Custody not initialized")
-    
+
     return custody.get_statistics()
 
 
@@ -658,12 +656,12 @@ async def get_custody_statistics(auth: AgencyAuth = Depends(get_auth)):
 async def global_exception_handler(request: Request, exc: Exception):
     """Handle unexpected errors."""
     logger.error(f"Unhandled exception: {exc}", exc_info=True)
-    
+
     return JSONResponse(
         status_code=500,
         content={
             "error": "Internal server error",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         },
     )
 
