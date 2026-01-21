@@ -18,7 +18,7 @@ on:
 env:
   PYTHON_VERSION: "3.12"
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: infinitefuturesai/childgaurdians-ai
 
 jobs:
   # ===========================================================================
@@ -185,7 +185,7 @@ jobs:
     
     services:
       api:
-        image: ghcr.io/${{ github.repository }}:${{ github.sha }}
+        image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
         ports:
           - 8000:8000
         options: >-
