@@ -1,0 +1,32 @@
+# =============================================================================
+# CHILD GUARDIANS - Development Dockerfile
+# =============================================================================
+# Includes dev dependencies for testing, linting, type checking
+# =============================================================================
+
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY pyproject.toml .
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -e ".[dev]"
+
+# Copy application code
+COPY src/ src/
+COPY tests/ tests/
+
+# Environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH=/app/src
+
+# Default command
+CMD ["pytest", "-v"]

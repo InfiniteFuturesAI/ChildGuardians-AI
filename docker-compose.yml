@@ -1,0 +1,84 @@
+# =============================================================================
+# CHILD GUARDIANS - Docker Compose Configuration
+# =============================================================================
+# Development and testing environment
+# For production, use Kubernetes manifests in deploy/
+# =============================================================================
+
+version: '3.9'
+
+services:
+  # ==========================================================================
+  # Main API Service
+  # ==========================================================================
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: child-guardians-api
+    ports:
+      - "8000:8000"
+    environment:
+      - LOG_LEVEL=INFO
+      - DATABASE_URL=sqlite:///data/child_guardians.db
+    volumes:
+      - app-data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/health').raise_for_status()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - child-guardians-net
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  # ==========================================================================
+  # Test Runner (Development Only)
+  # ==========================================================================
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: child-guardians-test
+    command: pytest -v --cov=child_guardians --cov-report=html --cov-report=term
+    volumes:
+      - ./src:/app/src:ro
+      - ./tests:/app/tests:ro
+      - ./htmlcov:/app/htmlcov
+    profiles:
+      - test
+    networks:
+      - child-guardians-net
+
+  # ==========================================================================
+  # Documentation Server (Development Only)
+  # ==========================================================================
+  docs:
+    image: squidfunk/mkdocs-material:9
+    container_name: child-guardians-docs
+    ports:
+      - "8001:8000"
+    volumes:
+      - .:/docs:ro
+    profiles:
+      - docs
+    networks:
+      - child-guardians-net
+
+networks:
+  child-guardians-net:
+    driver: bridge
+
+volumes:
+  app-data:
+    driver: local

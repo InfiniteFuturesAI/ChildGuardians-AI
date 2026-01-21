@@ -1,0 +1,5 @@
+"""API package for CHILD GUARDIANS."""
+
+from child_guardians.api.main import app, create_app
+
+__all__ = ["app", "create_app"]
