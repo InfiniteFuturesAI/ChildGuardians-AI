@@ -90,9 +90,7 @@ exclude_lines = [
     "if TYPE_CHECKING:",
     "if __name__ == .__main__.:",
 ]
-# Temporarily lowered from 80% while building out test coverage
-# Target: 80% by v1.0 release
-fail_under = 65
+fail_under = 80
 
 [tool.black]
 line-length = 100
