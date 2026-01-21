@@ -15,6 +15,7 @@ from pathlib import Path
 @dataclass
 class DatabaseConfig:
     """Database configuration."""
+
     url: str = "sqlite:///child_guardians.db"
     pool_size: int = 5
     max_overflow: int = 10
@@ -24,6 +25,7 @@ class DatabaseConfig:
 @dataclass
 class SecurityConfig:
     """Security configuration."""
+
     secret_key: str = ""
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
@@ -34,6 +36,7 @@ class SecurityConfig:
 @dataclass
 class LoggingConfig:
     """Logging configuration."""
+
     level: str = "INFO"
     format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     file: str | None = None
@@ -44,6 +47,7 @@ class LoggingConfig:
 @dataclass
 class AuditConfig:
     """Audit logging configuration."""
+
     enabled: bool = True
     log_queries: bool = True
     log_access: bool = True
@@ -53,6 +57,7 @@ class AuditConfig:
 @dataclass
 class HashRegistryConfig:
     """Hash registry configuration."""
+
     db_path: str = "hash_registry.db"
     cache_size: int = 10000
     perceptual_threshold: float = 0.95
@@ -110,7 +115,9 @@ class Config:
 
         # Audit
         config.audit.enabled = os.getenv("AUDIT_ENABLED", "true").lower() == "true"
-        config.audit.retention_days = int(os.getenv("AUDIT_RETENTION_DAYS", str(config.audit.retention_days)))
+        config.audit.retention_days = int(
+            os.getenv("AUDIT_RETENTION_DAYS", str(config.audit.retention_days))
+        )
 
         # Hash registry
         config.hash_registry.db_path = os.getenv("HASH_REGISTRY_PATH", config.hash_registry.db_path)

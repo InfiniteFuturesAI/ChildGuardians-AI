@@ -155,9 +155,9 @@ def cmd_hash(args):
         print(f"Total Matches: {stats['total_matches']:,}")
         print(f"Match Rate: {stats['match_rate']:.2%}")
 
-        if stats['by_hash_type']:
+        if stats["by_hash_type"]:
             print("\nBy Hash Type:")
-            for ht, count in stats['by_hash_type'].items():
+            for ht, count in stats["by_hash_type"].items():
                 print(f"  {ht}: {count:,}")
 
         registry.close()
@@ -196,9 +196,9 @@ def cmd_verify(args):
         print(f"  Score: {result['score']}/100")
         print(f"  Passed: {'✓' if result['passed'] else '✗'}")
 
-        if result['blocking_failures']:
+        if result["blocking_failures"]:
             print(f"  Blocking Failures: {len(result['blocking_failures'])}")
-            for failure in result['blocking_failures']:
+            for failure in result["blocking_failures"]:
                 print(f"    - {failure['challenge_id']}: {failure['question']}")
 
     print("\nVerification complete.")
@@ -242,6 +242,7 @@ def cmd_simulate(args):
 
     # Force validated status for simulation
     from child_guardians.core.evidence_object import EvidenceStatus
+
     if evidence.status == EvidenceStatus.DRAFT:
         evidence.status = EvidenceStatus.VALIDATED
 
@@ -253,31 +254,33 @@ def cmd_simulate(args):
     print(f"Case Number: {evidence.case_number}")
     print()
     print(f"Overall Score: {result['score']}/100")
-    print(f"Passed: {'✓ YES - Ready for export' if result['passed'] else '✗ NO - Not ready for export'}")
+    print(
+        f"Passed: {'✓ YES - Ready for export' if result['passed'] else '✗ NO - Not ready for export'}"
+    )
     print()
 
     print(f"Recommendation: {result['recommendation']}")
     print()
 
-    if result['blocking_failures']:
+    if result["blocking_failures"]:
         print("CRITICAL FAILURES (Must Fix):")
-        for failure in result['blocking_failures']:
+        for failure in result["blocking_failures"]:
             print(f"  ✗ [{failure['challenge_id']}] {failure['question']}")
             print(f"    → {failure['explanation']}")
         print()
 
-    if result['major_failures']:
+    if result["major_failures"]:
         print("MAJOR FAILURES:")
-        for failure in result['major_failures']:
+        for failure in result["major_failures"]:
             print(f"  ⚠ [{failure['challenge_id']}] {failure['question']}")
             print(f"    → {failure['explanation']}")
         print()
 
-    if result['warnings']:
+    if result["warnings"]:
         print(f"WARNINGS ({len(result['warnings'])} items):")
-        for warning in result['warnings'][:5]:  # Show first 5
+        for warning in result["warnings"][:5]:  # Show first 5
             print(f"  • [{warning['challenge_id']}] {warning['explanation']}")
-        if len(result['warnings']) > 5:
+        if len(result["warnings"]) > 5:
             print(f"  ... and {len(result['warnings']) - 5} more")
 
     if args.output:
@@ -289,6 +292,7 @@ def cmd_simulate(args):
 def cmd_version():
     """Show version information."""
     from child_guardians import __version__
+
     print(f"CHILD GUARDIANS v{__version__}")
 
 

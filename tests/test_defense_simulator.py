@@ -134,6 +134,7 @@ class TestDefenseSimulator:
         evidence.add_material_hash(material_hash)
         # Force status to validated for simulation
         from child_guardians.core.evidence_object import EvidenceStatus
+
         evidence.status = EvidenceStatus.VALIDATED
 
         return evidence
@@ -179,9 +180,16 @@ class TestDefenseSimulator:
         result = simulator.evaluate(complete_evidence)
 
         required_keys = [
-            "passed", "score", "evaluated_at", "total_challenges",
-            "blocking_failures", "major_failures", "warnings",
-            "results_by_category", "category_scores", "recommendation"
+            "passed",
+            "score",
+            "evaluated_at",
+            "total_challenges",
+            "blocking_failures",
+            "major_failures",
+            "warnings",
+            "results_by_category",
+            "category_scores",
+            "recommendation",
         ]
 
         for key in required_keys:
@@ -204,10 +212,16 @@ class TestDefenseSimulator:
         bad_result = simulator.evaluate(incomplete_evidence)
 
         # Good evidence should get positive recommendation
-        assert "ready" in good_result["recommendation"].lower() or "may be exported" in good_result["recommendation"].lower()
+        assert (
+            "ready" in good_result["recommendation"].lower()
+            or "may be exported" in good_result["recommendation"].lower()
+        )
 
         # Bad evidence should get blocking recommendation
-        assert "BLOCKED" in bad_result["recommendation"] or "resolve" in bad_result["recommendation"].lower()
+        assert (
+            "BLOCKED" in bad_result["recommendation"]
+            or "resolve" in bad_result["recommendation"].lower()
+        )
 
     def test_severity_levels(self, simulator):
         """Test that challenges have proper severity levels."""
@@ -220,6 +234,7 @@ class TestDefenseSimulator:
         """Test that challenge IDs follow expected format."""
         # IDs should be like LC-001, AU-002, etc.
         import re
+
         pattern = r"^[A-Z]{2,3}-\d{3}$"
 
         for challenge in simulator.challenges:
@@ -242,55 +257,48 @@ class TestChallengeCategories:
     def test_lawful_collection_challenges(self, simulator):
         """Test that lawful collection category has 5 challenges."""
         lc_challenges = [
-            c for c in simulator.challenges
-            if c.category == ChallengeCategory.LAWFUL_COLLECTION
+            c for c in simulator.challenges if c.category == ChallengeCategory.LAWFUL_COLLECTION
         ]
         assert len(lc_challenges) == 5
 
     def test_authentication_challenges(self, simulator):
         """Test that authentication category has 5 challenges."""
         auth_challenges = [
-            c for c in simulator.challenges
-            if c.category == ChallengeCategory.AUTHENTICATION
+            c for c in simulator.challenges if c.category == ChallengeCategory.AUTHENTICATION
         ]
         assert len(auth_challenges) == 5
 
     def test_chain_of_custody_challenges(self, simulator):
         """Test that chain of custody category has 5 challenges."""
         coc_challenges = [
-            c for c in simulator.challenges
-            if c.category == ChallengeCategory.CHAIN_OF_CUSTODY
+            c for c in simulator.challenges if c.category == ChallengeCategory.CHAIN_OF_CUSTODY
         ]
         assert len(coc_challenges) == 5
 
     def test_jurisdiction_challenges(self, simulator):
         """Test that jurisdiction category has 5 challenges."""
         jur_challenges = [
-            c for c in simulator.challenges
-            if c.category == ChallengeCategory.JURISDICTION
+            c for c in simulator.challenges if c.category == ChallengeCategory.JURISDICTION
         ]
         assert len(jur_challenges) == 5
 
     def test_disclosure_challenges(self, simulator):
         """Test that disclosure category has 5 challenges."""
         dis_challenges = [
-            c for c in simulator.challenges
-            if c.category == ChallengeCategory.DISCLOSURE
+            c for c in simulator.challenges if c.category == ChallengeCategory.DISCLOSURE
         ]
         assert len(dis_challenges) == 5
 
     def test_foundation_challenges(self, simulator):
         """Test that foundation category has 5 challenges."""
         fnd_challenges = [
-            c for c in simulator.challenges
-            if c.category == ChallengeCategory.FOUNDATION
+            c for c in simulator.challenges if c.category == ChallengeCategory.FOUNDATION
         ]
         assert len(fnd_challenges) == 5
 
     def test_timeliness_challenges(self, simulator):
         """Test that timeliness category has 5 challenges."""
         tim_challenges = [
-            c for c in simulator.challenges
-            if c.category == ChallengeCategory.TIMELINESS
+            c for c in simulator.challenges if c.category == ChallengeCategory.TIMELINESS
         ]
         assert len(tim_challenges) == 5

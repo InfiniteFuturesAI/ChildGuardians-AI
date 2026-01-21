@@ -239,11 +239,13 @@ class TestEvidenceObject:
     def test_custody_gap_detection(self, evidence_object):
         """Test detection of custody gaps."""
         # Manually create a gap
-        evidence_object.chain_of_custody.append({
-            "timestamp": (datetime.now(UTC) + timedelta(hours=48)).isoformat(),
-            "action": "accessed",
-            "actor": "OFF-002",
-        })
+        evidence_object.chain_of_custody.append(
+            {
+                "timestamp": (datetime.now(UTC) + timedelta(hours=48)).isoformat(),
+                "action": "accessed",
+                "actor": "OFF-002",
+            }
+        )
 
         gaps = evidence_object._check_custody_gaps()
 

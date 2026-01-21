@@ -166,6 +166,7 @@ class TestHashRegistryIntegration:
 
         # Register some hashes first with unique values
         import time
+
         ts = str(int(time.time()))
 
         for i in range(3):

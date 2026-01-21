@@ -29,6 +29,7 @@ from cryptography.hazmat.primitives.asymmetric import ed25519
 
 class CustodyAction(Enum):
     """Types of custody events."""
+
     CREATED = "created"
     ACCESSED = "accessed"
     MODIFIED = "modified"
@@ -43,6 +44,7 @@ class CustodyAction(Enum):
 @dataclass
 class CustodyEvent:
     """A single event in the chain of custody."""
+
     event_id: str
     evidence_id: str
     action: CustodyAction
@@ -50,9 +52,9 @@ class CustodyEvent:
     actor_name: str
     actor_agency: str
     timestamp: datetime
-    previous_hash: str          # Hash of previous event (chain link)
-    event_hash: str             # Hash of this event
-    signature: bytes            # Actor's signature
+    previous_hash: str  # Hash of previous event (chain link)
+    event_hash: str  # Hash of this event
+    signature: bytes  # Actor's signature
     details: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -114,7 +116,8 @@ class ChainOfCustody:
         self._conn = sqlite3.connect(self.db_path)
         self._conn.row_factory = sqlite3.Row
 
-        self._conn.executescript("""
+        self._conn.executescript(
+            """
             CREATE TABLE IF NOT EXISTS custody_events (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 event_id TEXT UNIQUE NOT NULL,
@@ -139,7 +142,8 @@ class ChainOfCustody:
 
             CREATE INDEX IF NOT EXISTS idx_timestamp
                 ON custody_events(timestamp);
-        """)
+        """
+        )
         self._conn.commit()
 
     def record_event(
@@ -187,9 +191,7 @@ class ChainOfCustody:
             "previous_hash": previous_hash,
             "details": details or {},
         }
-        event_hash = hashlib.sha256(
-            json.dumps(event_data, sort_keys=True).encode()
-        ).hexdigest()
+        event_hash = hashlib.sha256(json.dumps(event_data, sort_keys=True).encode()).hexdigest()
 
         # Sign if key provided
         signature = b""
@@ -219,12 +221,15 @@ class ChainOfCustody:
     def _get_last_hash(self, evidence_id: str) -> str:
         """Get the hash of the last event for this evidence."""
         cursor = self._conn.cursor()
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT event_hash FROM custody_events
             WHERE evidence_id = ?
             ORDER BY timestamp DESC, id DESC
             LIMIT 1
-        """, (evidence_id,))
+        """,
+            (evidence_id,),
+        )
 
         row = cursor.fetchone()
         return row["event_hash"] if row else self.GENESIS_HASH
@@ -232,25 +237,28 @@ class ChainOfCustody:
     def _store_event(self, event: CustodyEvent) -> None:
         """Store event in database."""
         cursor = self._conn.cursor()
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO custody_events
             (event_id, evidence_id, action, actor_id, actor_name, actor_agency,
              timestamp, previous_hash, event_hash, signature, details, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            event.event_id,
-            event.evidence_id,
-            event.action.value,
-            event.actor_id,
-            event.actor_name,
-            event.actor_agency,
-            event.timestamp.isoformat(),
-            event.previous_hash,
-            event.event_hash,
-            event.signature,
-            json.dumps(event.details),
-            datetime.now(UTC).isoformat(),
-        ))
+        """,
+            (
+                event.event_id,
+                event.evidence_id,
+                event.action.value,
+                event.actor_id,
+                event.actor_name,
+                event.actor_agency,
+                event.timestamp.isoformat(),
+                event.previous_hash,
+                event.event_hash,
+                event.signature,
+                json.dumps(event.details),
+                datetime.now(UTC).isoformat(),
+            ),
+        )
         self._conn.commit()
 
     def get_chain(self, evidence_id: str) -> list[CustodyEvent]:
@@ -264,27 +272,32 @@ class ChainOfCustody:
             List of CustodyEvents in chronological order
         """
         cursor = self._conn.cursor()
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT * FROM custody_events
             WHERE evidence_id = ?
             ORDER BY timestamp ASC, id ASC
-        """, (evidence_id,))
+        """,
+            (evidence_id,),
+        )
 
         events = []
         for row in cursor.fetchall():
-            events.append(CustodyEvent(
-                event_id=row["event_id"],
-                evidence_id=row["evidence_id"],
-                action=CustodyAction(row["action"]),
-                actor_id=row["actor_id"],
-                actor_name=row["actor_name"],
-                actor_agency=row["actor_agency"],
-                timestamp=datetime.fromisoformat(row["timestamp"]),
-                previous_hash=row["previous_hash"],
-                event_hash=row["event_hash"],
-                signature=row["signature"] or b"",
-                details=json.loads(row["details"]) if row["details"] else {},
-            ))
+            events.append(
+                CustodyEvent(
+                    event_id=row["event_id"],
+                    evidence_id=row["evidence_id"],
+                    action=CustodyAction(row["action"]),
+                    actor_id=row["actor_id"],
+                    actor_name=row["actor_name"],
+                    actor_agency=row["actor_agency"],
+                    timestamp=datetime.fromisoformat(row["timestamp"]),
+                    previous_hash=row["previous_hash"],
+                    event_hash=row["event_hash"],
+                    signature=row["signature"] or b"",
+                    details=json.loads(row["details"]) if row["details"] else {},
+                )
+            )
 
         return events
 
@@ -323,13 +336,15 @@ class ChainOfCustody:
         for i, event in enumerate(events):
             # Check chain link
             if event.previous_hash != previous_hash:
-                issues.append({
-                    "event_index": i,
-                    "event_id": event.event_id,
-                    "issue": "broken_chain",
-                    "expected_previous": previous_hash,
-                    "actual_previous": event.previous_hash,
-                })
+                issues.append(
+                    {
+                        "event_index": i,
+                        "event_id": event.event_id,
+                        "issue": "broken_chain",
+                        "expected_previous": previous_hash,
+                        "actual_previous": event.previous_hash,
+                    }
+                )
 
             # Verify event hash
             event_data = {
@@ -348,27 +363,28 @@ class ChainOfCustody:
             ).hexdigest()
 
             if computed_hash != event.event_hash:
-                issues.append({
-                    "event_index": i,
-                    "event_id": event.event_id,
-                    "issue": "hash_mismatch",
-                    "expected_hash": computed_hash,
-                    "actual_hash": event.event_hash,
-                })
+                issues.append(
+                    {
+                        "event_index": i,
+                        "event_id": event.event_id,
+                        "issue": "hash_mismatch",
+                        "expected_hash": computed_hash,
+                        "actual_hash": event.event_hash,
+                    }
+                )
 
             # Verify signature if public key available
             if public_keys and event.actor_id in public_keys and event.signature:
                 try:
-                    public_keys[event.actor_id].verify(
-                        event.signature,
-                        event.event_hash.encode()
-                    )
+                    public_keys[event.actor_id].verify(event.signature, event.event_hash.encode())
                 except InvalidSignature:
-                    issues.append({
-                        "event_index": i,
-                        "event_id": event.event_id,
-                        "issue": "invalid_signature",
-                    })
+                    issues.append(
+                        {
+                            "event_index": i,
+                            "event_id": event.event_id,
+                            "issue": "invalid_signature",
+                        }
+                    )
 
             previous_hash = event.event_hash
 
@@ -406,19 +422,21 @@ class ChainOfCustody:
 
         events = []
         for row in cursor.fetchall():
-            events.append(CustodyEvent(
-                event_id=row["event_id"],
-                evidence_id=row["evidence_id"],
-                action=CustodyAction(row["action"]),
-                actor_id=row["actor_id"],
-                actor_name=row["actor_name"],
-                actor_agency=row["actor_agency"],
-                timestamp=datetime.fromisoformat(row["timestamp"]),
-                previous_hash=row["previous_hash"],
-                event_hash=row["event_hash"],
-                signature=row["signature"] or b"",
-                details=json.loads(row["details"]) if row["details"] else {},
-            ))
+            events.append(
+                CustodyEvent(
+                    event_id=row["event_id"],
+                    evidence_id=row["evidence_id"],
+                    action=CustodyAction(row["action"]),
+                    actor_id=row["actor_id"],
+                    actor_name=row["actor_name"],
+                    actor_agency=row["actor_agency"],
+                    timestamp=datetime.fromisoformat(row["timestamp"]),
+                    previous_hash=row["previous_hash"],
+                    event_hash=row["event_hash"],
+                    signature=row["signature"] or b"",
+                    details=json.loads(row["details"]) if row["details"] else {},
+                )
+            )
 
         return events
 
@@ -432,16 +450,20 @@ class ChainOfCustody:
         cursor.execute("SELECT COUNT(*) as count FROM custody_events")
         total_events = cursor.fetchone()["count"]
 
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT action, COUNT(*) as count
             FROM custody_events GROUP BY action
-        """)
+        """
+        )
         by_action = {row["action"]: row["count"] for row in cursor.fetchall()}
 
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT actor_agency, COUNT(*) as count
             FROM custody_events GROUP BY actor_agency
-        """)
+        """
+        )
         by_agency = {row["actor_agency"]: row["count"] for row in cursor.fetchall()}
 
         return {

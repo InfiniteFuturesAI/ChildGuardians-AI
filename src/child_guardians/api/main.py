@@ -35,8 +35,7 @@ from child_guardians.core.hash_registry import (
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger("child_guardians.api")
 
@@ -95,8 +94,10 @@ app.add_middleware(
 
 # ===== Request/Response Models =====
 
+
 class AgencyAuth(BaseModel):
     """Authentication context from headers."""
+
     agency_id: str
     officer_id: str
     officer_name: str
@@ -105,6 +106,7 @@ class AgencyAuth(BaseModel):
 
 class HashCheckRequest(BaseModel):
     """Request to check a hash."""
+
     hash_type: str = Field(..., description="Hash type: sha256, sha3_512, photodna, pdq")
     hash_value: str = Field(..., description="Hex-encoded hash value")
     case_reference: str | None = Field(None, description="Optional case number")
@@ -113,6 +115,7 @@ class HashCheckRequest(BaseModel):
 
 class HashCheckResponse(BaseModel):
     """Response from hash check."""
+
     found: bool
     confidence: str | None = None
     victim_status: str | None = None
@@ -123,6 +126,7 @@ class HashCheckResponse(BaseModel):
 
 class BatchHashCheckRequest(BaseModel):
     """Request to check multiple hashes."""
+
     hashes: list[HashCheckRequest]
     case_reference: str | None = None
     legal_basis: str | None = None
@@ -130,6 +134,7 @@ class BatchHashCheckRequest(BaseModel):
 
 class HashRegisterRequest(BaseModel):
     """Request to register a new hash."""
+
     hash_type: str
     hash_value: str
     confidence: str = "confirmed"
@@ -141,6 +146,7 @@ class HashRegisterRequest(BaseModel):
 
 class EvidenceCreateRequest(BaseModel):
     """Request to create new evidence object."""
+
     case_number: str
     evidence_type: str
     legal_basis_type: str
@@ -162,6 +168,7 @@ class EvidenceCreateRequest(BaseModel):
 
 class MaterialHashRequest(BaseModel):
     """Request to add a material hash."""
+
     hash_type: str
     hash_value: str
     source_file: str
@@ -170,6 +177,7 @@ class MaterialHashRequest(BaseModel):
 
 class CustodyEventRequest(BaseModel):
     """Request to record a custody event."""
+
     evidence_id: str
     action: str
     details: dict[str, Any] | None = None
@@ -177,6 +185,7 @@ class CustodyEventRequest(BaseModel):
 
 class DefenseSimulationResponse(BaseModel):
     """Response from defense simulation."""
+
     passed: bool
     score: int
     blocking_failures: list[dict]
@@ -186,6 +195,7 @@ class DefenseSimulationResponse(BaseModel):
 
 
 # ===== Authentication Dependency =====
+
 
 async def get_auth(
     x_agency_id: str = Header(..., description="Agency identifier"),
@@ -203,6 +213,7 @@ async def get_auth(
 
 
 # ===== Middleware =====
+
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -224,6 +235,7 @@ async def log_requests(request: Request, call_next):
 
 
 # ===== Health Endpoints =====
+
 
 @app.get("/health")
 async def health_check():
@@ -256,6 +268,7 @@ async def readiness_check():
 
 
 # ===== Hash Registry Endpoints =====
+
 
 @app.post("/api/v1/hash/check", response_model=HashCheckResponse)
 async def check_hash(
@@ -389,7 +402,11 @@ async def create_evidence(
         issued_by=request.legal_basis_issued_by,
         issued_date=datetime.fromisoformat(request.legal_basis_issued_date),
         scope=request.legal_basis_scope,
-        expires=datetime.fromisoformat(request.legal_basis_expires) if request.legal_basis_expires else None,
+        expires=(
+            datetime.fromisoformat(request.legal_basis_expires)
+            if request.legal_basis_expires
+            else None
+        ),
     )
 
     collection_details = CollectionDetails(
@@ -548,6 +565,7 @@ async def simulate_defense(
 
 # ===== Chain of Custody Endpoints =====
 
+
 @app.get("/api/v1/custody/{evidence_id}")
 async def get_custody_chain(
     evidence_id: str,
@@ -621,6 +639,7 @@ async def export_custody_chain(
 
 # ===== Audit Endpoints =====
 
+
 @app.get("/api/v1/audit/queries")
 async def get_query_log(
     agency: str | None = None,
@@ -652,6 +671,7 @@ async def get_custody_statistics(auth: AgencyAuth = Depends(get_auth)):
 
 # ===== Error Handlers =====
 
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     """Handle unexpected errors."""
@@ -667,6 +687,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 
 # ===== Application Factory =====
+
 
 def create_app() -> FastAPI:
     """Factory function for creating the application."""

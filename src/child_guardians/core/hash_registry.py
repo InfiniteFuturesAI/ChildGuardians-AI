@@ -30,6 +30,7 @@ from typing import Any
 
 class HashType(Enum):
     """Supported hash algorithms."""
+
     SHA256 = "sha256"
     SHA3_512 = "sha3_512"
     PHOTODNA = "photodna"
@@ -38,30 +39,33 @@ class HashType(Enum):
 
 class MatchConfidence(Enum):
     """Confidence level of hash match."""
-    CONFIRMED = "confirmed"          # Human-verified CSAM
-    HIGH = "high"                    # Algorithm match, high confidence
-    MEDIUM = "medium"                # Perceptual match, medium confidence
-    PENDING_REVIEW = "pending"       # Awaiting verification
+
+    CONFIRMED = "confirmed"  # Human-verified CSAM
+    HIGH = "high"  # Algorithm match, high confidence
+    MEDIUM = "medium"  # Perceptual match, medium confidence
+    PENDING_REVIEW = "pending"  # Awaiting verification
 
 
 class VictimStatus(Enum):
     """Status of victim identification."""
-    IDENTIFIED = "identified"        # Victim known to authorities
-    UNIDENTIFIED = "unidentified"    # Victim not yet identified
-    UNKNOWN = "unknown"              # Status not determined
+
+    IDENTIFIED = "identified"  # Victim known to authorities
+    UNIDENTIFIED = "unidentified"  # Victim not yet identified
+    UNKNOWN = "unknown"  # Status not determined
 
 
 @dataclass
 class HashRecord:
     """A record in the hash registry."""
+
     hash_type: HashType
     hash_value: str
     confidence: MatchConfidence
     victim_status: VictimStatus
     first_seen: datetime
     last_seen: datetime
-    source_authority: str            # Which authority first reported
-    category: str                    # csam_confirmed, csam_suspected, etc.
+    source_authority: str  # Which authority first reported
+    category: str  # csam_confirmed, csam_suspected, etc.
     series_id: str | None = None  # If part of known series
 
     def to_dict(self) -> dict[str, Any]:
@@ -81,6 +85,7 @@ class HashRecord:
 @dataclass
 class HashMatch:
     """Result of a hash lookup."""
+
     found: bool
     record: HashRecord | None = None
     evidence_package_available: bool = False
@@ -131,7 +136,8 @@ class HashRegistry:
         self._conn = sqlite3.connect(self.db_path)
         self._conn.row_factory = sqlite3.Row
 
-        self._conn.executescript("""
+        self._conn.executescript(
+            """
             CREATE TABLE IF NOT EXISTS hashes (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 hash_type TEXT NOT NULL,
@@ -174,7 +180,8 @@ class HashRegistry:
                 case_reference TEXT,
                 legal_basis TEXT
             );
-        """)
+        """
+        )
         self._conn.commit()
 
     def check(
@@ -211,29 +218,35 @@ class HashRegistry:
         cursor = self._conn.cursor()
 
         # Query for hash
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT * FROM hashes
             WHERE hash_type = ? AND hash_value = ?
-        """, (hash_type.value, hash_value))
+        """,
+            (hash_type.value, hash_value),
+        )
 
         row = cursor.fetchone()
 
         # Log the query
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO query_log
             (query_time, hash_type, hash_value, found, querying_agency,
              querying_officer, case_reference, legal_basis)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            datetime.now(UTC).isoformat(),
-            hash_type.value,
-            hash_value,
-            1 if row else 0,
-            querying_agency,
-            querying_officer,
-            case_reference,
-            legal_basis,
-        ))
+        """,
+            (
+                datetime.now(UTC).isoformat(),
+                hash_type.value,
+                hash_value,
+                1 if row else 0,
+                querying_agency,
+                querying_officer,
+                case_reference,
+                legal_basis,
+            ),
+        )
         self._conn.commit()
 
         if not row:
@@ -253,21 +266,30 @@ class HashRegistry:
         )
 
         # Get evidence packages
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT package_id FROM evidence_packages WHERE hash_id = ?
-        """, (row["id"],))
+        """,
+            (row["id"],),
+        )
         packages = cursor.fetchall()
 
         # Get jurisdiction flags
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT jurisdiction FROM jurisdiction_flags WHERE hash_id = ?
-        """, (row["id"],))
+        """,
+            (row["id"],),
+        )
         jurisdictions = [r["jurisdiction"] for r in cursor.fetchall()]
 
         # Update last_seen
-        cursor.execute("""
+        cursor.execute(
+            """
             UPDATE hashes SET last_seen = ? WHERE id = ?
-        """, (datetime.now(UTC).isoformat(), row["id"]))
+        """,
+            (datetime.now(UTC).isoformat(), row["id"]),
+        )
         self._conn.commit()
 
         return HashMatch(
@@ -348,33 +370,39 @@ class HashRegistry:
         cursor = self._conn.cursor()
 
         try:
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO hashes
                 (hash_type, hash_value, confidence, victim_status, first_seen,
                  last_seen, source_authority, category, series_id, created_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                hash_type.value,
-                hash_value,
-                confidence.value,
-                victim_status.value,
-                now,
-                now,
-                source_authority,
-                category,
-                series_id,
-                now,
-            ))
+            """,
+                (
+                    hash_type.value,
+                    hash_value,
+                    confidence.value,
+                    victim_status.value,
+                    now,
+                    now,
+                    source_authority,
+                    category,
+                    series_id,
+                    now,
+                ),
+            )
 
             hash_id = cursor.lastrowid
 
             # Add jurisdiction flags
             if jurisdictions:
                 for jurisdiction in jurisdictions:
-                    cursor.execute("""
+                    cursor.execute(
+                        """
                         INSERT INTO jurisdiction_flags (hash_id, jurisdiction)
                         VALUES (?, ?)
-                    """, (hash_id, jurisdiction))
+                    """,
+                        (hash_id, jurisdiction),
+                    )
 
             self._conn.commit()
             return True
@@ -387,18 +415,24 @@ class HashRegistry:
         """Link an evidence package to a hash."""
         cursor = self._conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT id FROM hashes WHERE hash_value = ?
-        """, (hash_value.lower().strip(),))
+        """,
+            (hash_value.lower().strip(),),
+        )
 
         row = cursor.fetchone()
         if not row:
             return False
 
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO evidence_packages (hash_id, package_id, created_at)
             VALUES (?, ?, ?)
-        """, (row["id"], package_id, datetime.now(UTC).isoformat()))
+        """,
+            (row["id"], package_id, datetime.now(UTC).isoformat()),
+        )
 
         self._conn.commit()
         return True
@@ -450,24 +484,30 @@ class HashRegistry:
         cursor.execute("SELECT COUNT(*) as total FROM hashes")
         total_hashes = cursor.fetchone()["total"]
 
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT hash_type, COUNT(*) as count
             FROM hashes GROUP BY hash_type
-        """)
+        """
+        )
         by_type = {row["hash_type"]: row["count"] for row in cursor.fetchall()}
 
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT victim_status, COUNT(*) as count
             FROM hashes GROUP BY victim_status
-        """)
+        """
+        )
         by_victim_status = {row["victim_status"]: row["count"] for row in cursor.fetchall()}
 
         cursor.execute("SELECT COUNT(*) as total FROM query_log")
         total_queries = cursor.fetchone()["total"]
 
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT COUNT(*) as matches FROM query_log WHERE found = 1
-        """)
+        """
+        )
         total_matches = cursor.fetchone()["matches"]
 
         return {

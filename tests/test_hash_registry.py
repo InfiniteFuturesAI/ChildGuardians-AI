@@ -2,7 +2,6 @@
 Tests for HashRegistry
 """
 
-
 import pytest
 
 from child_guardians.core.hash_registry import (

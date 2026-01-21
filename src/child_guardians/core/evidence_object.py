@@ -21,15 +21,17 @@ from cryptography.hazmat.primitives.asymmetric import ed25519
 
 class EvidenceStatus(Enum):
     """Lifecycle states for evidence objects."""
-    DRAFT = "draft"                    # Being assembled
-    VALIDATED = "validated"            # Pre-flight passed
-    SEALED = "sealed"                  # Immutable, court-ready
-    EXPORTED = "exported"              # Sent to prosecution
-    ARCHIVED = "archived"              # Retention period complete
+
+    DRAFT = "draft"  # Being assembled
+    VALIDATED = "validated"  # Pre-flight passed
+    SEALED = "sealed"  # Immutable, court-ready
+    EXPORTED = "exported"  # Sent to prosecution
+    ARCHIVED = "archived"  # Retention period complete
 
 
 class LegalBasisType(Enum):
     """Types of legal authority for evidence collection."""
+
     WARRANT = "warrant"
     CONSENT = "consent"
     EXIGENT = "exigent_circumstances"
@@ -41,12 +43,13 @@ class LegalBasisType(Enum):
 @dataclass
 class MaterialHash:
     """Cryptographic fingerprint of evidence material."""
-    hash_type: str          # sha256, sha3_512, photodna, pdq
-    hash_value: str         # Hex-encoded hash
-    source_file: str        # Original filename
-    source_path: str        # Path on source device/system
+
+    hash_type: str  # sha256, sha3_512, photodna, pdq
+    hash_value: str  # Hex-encoded hash
+    source_file: str  # Original filename
+    source_path: str  # Path on source device/system
     computed_at: datetime = field(default_factory=lambda: datetime.now(UTC))
-    computed_by: str = ""   # Officer/tool that computed hash
+    computed_by: str = ""  # Officer/tool that computed hash
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -73,11 +76,12 @@ class MaterialHash:
 @dataclass
 class LegalBasis:
     """Legal authority for evidence collection."""
+
     basis_type: LegalBasisType
-    reference: str              # Warrant number, consent form ID, etc.
-    issued_by: str              # Judge name, consenting party, etc.
+    reference: str  # Warrant number, consent form ID, etc.
+    issued_by: str  # Judge name, consenting party, etc.
     issued_date: datetime
-    scope: str                  # What the authority covers
+    scope: str  # What the authority covers
     expires: datetime | None = None
 
     def to_dict(self) -> dict[str, Any]:
@@ -105,7 +109,8 @@ class LegalBasis:
 @dataclass
 class JurisdictionMap:
     """Permission mapping for cross-jurisdiction evidence handling."""
-    primary_jurisdiction: str           # ISO 3166-1 alpha-2 + subdivision
+
+    primary_jurisdiction: str  # ISO 3166-1 alpha-2 + subdivision
     hosting_country: str
     victim_country: str | None = None
     can_view_metadata: list[str] = field(default_factory=list)
@@ -146,6 +151,7 @@ class JurisdictionMap:
 @dataclass
 class CollectionDetails:
     """Metadata about evidence collection."""
+
     officer_id: str
     officer_name: str
     badge_number: str
@@ -155,7 +161,7 @@ class CollectionDetails:
     collection_location: str
     tool_used: str
     tool_version: str
-    tool_hash: str              # Hash of forensic tool for verification
+    tool_hash: str  # Hash of forensic tool for verification
     witness_present: bool = False
     witness_name: str | None = None
 
@@ -209,7 +215,7 @@ class EvidenceObject:
         collection_details: CollectionDetails,
         jurisdiction: JurisdictionMap,
     ):
-        self.evidence_id = str(uuid.uuid7()) if hasattr(uuid, 'uuid7') else str(uuid.uuid4())
+        self.evidence_id = str(uuid.uuid7()) if hasattr(uuid, "uuid7") else str(uuid.uuid4())
         self.case_number = case_number
         self.evidence_type = evidence_type
         self.legal_basis = legal_basis
@@ -242,7 +248,7 @@ class EvidenceObject:
         self._log_custody_event(
             "hash_added",
             material_hash.computed_by,
-            {"hash_type": material_hash.hash_type, "source_file": material_hash.source_file}
+            {"hash_type": material_hash.hash_type, "source_file": material_hash.source_file},
         )
 
     def validate(self) -> dict[str, Any]:
@@ -255,44 +261,50 @@ class EvidenceObject:
 
         # Check legal basis
         if not self.legal_basis.reference:
-            issues.append({
-                "code": "LEGAL-001",
-                "message": "Missing legal basis reference",
-                "severity": "error"
-            })
+            issues.append(
+                {
+                    "code": "LEGAL-001",
+                    "message": "Missing legal basis reference",
+                    "severity": "error",
+                }
+            )
 
         if self.legal_basis.expires and self.legal_basis.expires < datetime.now(UTC):
-            issues.append({
-                "code": "LEGAL-002",
-                "message": "Legal authority has expired",
-                "severity": "error"
-            })
+            issues.append(
+                {"code": "LEGAL-002", "message": "Legal authority has expired", "severity": "error"}
+            )
 
         # Check collection details
         if not self.collection_details.tool_hash:
-            warnings.append({
-                "code": "COLLECTION-001",
-                "message": "Forensic tool hash not recorded",
-                "severity": "warning"
-            })
+            warnings.append(
+                {
+                    "code": "COLLECTION-001",
+                    "message": "Forensic tool hash not recorded",
+                    "severity": "warning",
+                }
+            )
 
         # Check material hashes
         if not self.material_hashes:
-            issues.append({
-                "code": "MATERIAL-001",
-                "message": "No material hashes recorded",
-                "severity": "error"
-            })
+            issues.append(
+                {
+                    "code": "MATERIAL-001",
+                    "message": "No material hashes recorded",
+                    "severity": "error",
+                }
+            )
 
         # Check chain of custody gaps
         custody_gaps = self._check_custody_gaps()
         for gap in custody_gaps:
-            warnings.append({
-                "code": "CUSTODY-001",
-                "message": f"Custody gap detected: {gap['duration']} hours",
-                "severity": "warning",
-                "details": gap
-            })
+            warnings.append(
+                {
+                    "code": "CUSTODY-001",
+                    "message": f"Custody gap detected: {gap['duration']} hours",
+                    "severity": "warning",
+                    "details": gap,
+                }
+            )
 
         result = {
             "passed": len(issues) == 0,
@@ -334,7 +346,11 @@ class EvidenceObject:
 
     def verify_seal(self, public_key: ed25519.Ed25519PublicKey) -> bool:
         """Verify the evidence seal is intact."""
-        if self.status not in (EvidenceStatus.SEALED, EvidenceStatus.EXPORTED, EvidenceStatus.ARCHIVED):
+        if self.status not in (
+            EvidenceStatus.SEALED,
+            EvidenceStatus.EXPORTED,
+            EvidenceStatus.ARCHIVED,
+        ):
             return False
 
         if not self._content_hash or not self._seal_signature:
@@ -363,9 +379,7 @@ class EvidenceObject:
         self.defense_simulation_results = results
 
         self._log_custody_event(
-            "defense_simulation",
-            "system",
-            {"passed": results["passed"], "score": results["score"]}
+            "defense_simulation", "system", {"passed": results["passed"], "score": results["score"]}
         )
 
         return results
@@ -398,10 +412,7 @@ class EvidenceObject:
         }
 
     def _log_custody_event(
-        self,
-        action: str,
-        actor: str,
-        details: dict[str, Any] | None = None
+        self, action: str, actor: str, details: dict[str, Any] | None = None
     ) -> None:
         """Record an event in the chain of custody."""
         event = {
@@ -451,16 +462,18 @@ class EvidenceObject:
             return gaps
 
         for i in range(1, len(self.chain_of_custody)):
-            prev = datetime.fromisoformat(self.chain_of_custody[i-1]["timestamp"])
+            prev = datetime.fromisoformat(self.chain_of_custody[i - 1]["timestamp"])
             curr = datetime.fromisoformat(self.chain_of_custody[i]["timestamp"])
 
             gap_hours = (curr - prev).total_seconds() / 3600
             if gap_hours > 12:  # Flag gaps over 12 hours
-                gaps.append({
-                    "from": self.chain_of_custody[i-1]["timestamp"],
-                    "to": self.chain_of_custody[i]["timestamp"],
-                    "duration": round(gap_hours, 2),
-                })
+                gaps.append(
+                    {
+                        "from": self.chain_of_custody[i - 1]["timestamp"],
+                        "to": self.chain_of_custody[i]["timestamp"],
+                        "duration": round(gap_hours, 2),
+                    }
+                )
 
         return gaps
 
@@ -499,7 +512,9 @@ class EvidenceObject:
         obj.status = EvidenceStatus(data["status"])
         obj.created_at = datetime.fromisoformat(data["created_at"])
         obj.sealed_at = datetime.fromisoformat(data["sealed_at"]) if data.get("sealed_at") else None
-        obj.exported_at = datetime.fromisoformat(data["exported_at"]) if data.get("exported_at") else None
+        obj.exported_at = (
+            datetime.fromisoformat(data["exported_at"]) if data.get("exported_at") else None
+        )
         obj.material_hashes = [MaterialHash.from_dict(h) for h in data.get("material_hashes", [])]
         obj.chain_of_custody = data.get("chain_of_custody", [])
         obj.pre_flight_results = data.get("pre_flight_results")

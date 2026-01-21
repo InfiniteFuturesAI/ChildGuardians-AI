@@ -2,7 +2,6 @@
 Tests for Chain of Custody
 """
 
-
 import pytest
 from cryptography.hazmat.primitives.asymmetric import ed25519
 
@@ -82,7 +81,7 @@ class TestChainOfCustody:
         assert len(chain) == 5
         # Check chronological order
         for i in range(1, len(chain)):
-            assert chain[i].timestamp >= chain[i-1].timestamp
+            assert chain[i].timestamp >= chain[i - 1].timestamp
 
     def test_verify_valid_chain(self, custody):
         """Test verification of valid chain."""
@@ -137,10 +136,7 @@ class TestChainOfCustody:
             private_key=private_key,
         )
 
-        result = custody.verify_chain(
-            "EV-001",
-            public_keys={"OFF-001": public_key}
-        )
+        result = custody.verify_chain("EV-001", public_keys={"OFF-001": public_key})
 
         assert result["valid"] is True
 
@@ -280,8 +276,15 @@ class TestCustodyAction:
     def test_all_actions_exist(self):
         """Test that all expected actions exist."""
         expected_actions = [
-            "CREATED", "ACCESSED", "MODIFIED", "HASH_ADDED",
-            "VALIDATED", "SEALED", "EXPORTED", "TRANSFERRED", "ARCHIVED"
+            "CREATED",
+            "ACCESSED",
+            "MODIFIED",
+            "HASH_ADDED",
+            "VALIDATED",
+            "SEALED",
+            "EXPORTED",
+            "TRANSFERRED",
+            "ARCHIVED",
         ]
 
         for action in expected_actions:

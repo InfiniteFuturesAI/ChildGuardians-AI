@@ -32,6 +32,7 @@ if TYPE_CHECKING:
 
 class ChallengeCategory(Enum):
     """Categories of defense challenges."""
+
     LAWFUL_COLLECTION = "lawful_collection"
     AUTHENTICATION = "authentication"
     CHAIN_OF_CUSTODY = "chain_of_custody"
@@ -43,6 +44,7 @@ class ChallengeCategory(Enum):
 
 class ChallengeResult(Enum):
     """Result of a challenge evaluation."""
+
     PASS = "pass"
     FAIL = "fail"
     WARNING = "warning"
@@ -51,6 +53,7 @@ class ChallengeResult(Enum):
 @dataclass
 class Challenge:
     """A single defense challenge question."""
+
     id: str
     category: ChallengeCategory
     question: str
@@ -88,297 +91,367 @@ class DefenseSimulator:
 
         # ===== LAWFUL COLLECTION (5 challenges) =====
 
-        self.challenges.append(Challenge(
-            id="LC-001",
-            category=ChallengeCategory.LAWFUL_COLLECTION,
-            question="Was there a valid warrant or legal exception for this collection?",
-            severity="critical",
-            evaluator=self._check_legal_basis,
-        ))
+        self.challenges.append(
+            Challenge(
+                id="LC-001",
+                category=ChallengeCategory.LAWFUL_COLLECTION,
+                question="Was there a valid warrant or legal exception for this collection?",
+                severity="critical",
+                evaluator=self._check_legal_basis,
+            )
+        )
 
-        self.challenges.append(Challenge(
-            id="LC-002",
-            category=ChallengeCategory.LAWFUL_COLLECTION,
-            question="Was the warrant properly issued by a magistrate with jurisdiction?",
-            severity="critical",
-            evaluator=self._check_warrant_authority,
-        ))
+        self.challenges.append(
+            Challenge(
+                id="LC-002",
+                category=ChallengeCategory.LAWFUL_COLLECTION,
+                question="Was the warrant properly issued by a magistrate with jurisdiction?",
+                severity="critical",
+                evaluator=self._check_warrant_authority,
+            )
+        )
 
-        self.challenges.append(Challenge(
-            id="LC-003",
-            category=ChallengeCategory.LAWFUL_COLLECTION,
-            question="Did the collection stay within the scope of the warrant?",
-            severity="critical",
-            evaluator=self._check_warrant_scope,
-        ))
+        self.challenges.append(
+            Challenge(
+                id="LC-003",
+                category=ChallengeCategory.LAWFUL_COLLECTION,
+                question="Did the collection stay within the scope of the warrant?",
+                severity="critical",
+                evaluator=self._check_warrant_scope,
+            )
+        )
 
-        self.challenges.append(Challenge(
-            id="LC-004",
-            category=ChallengeCategory.LAWFUL_COLLECTION,
-            question="Was the warrant executed within its valid period?",
-            severity="critical",
-            evaluator=self._check_warrant_validity,
-        ))
+        self.challenges.append(
+            Challenge(
+                id="LC-004",
+                category=ChallengeCategory.LAWFUL_COLLECTION,
+                question="Was the warrant executed within its valid period?",
+                severity="critical",
+                evaluator=self._check_warrant_validity,
+            )
+        )
 
-        self.challenges.append(Challenge(
-            id="LC-005",
-            category=ChallengeCategory.LAWFUL_COLLECTION,
-            question="Were proper procedures followed during collection?",
-            severity="major",
-            evaluator=self._check_collection_procedures,
-        ))
+        self.challenges.append(
+            Challenge(
+                id="LC-005",
+                category=ChallengeCategory.LAWFUL_COLLECTION,
+                question="Were proper procedures followed during collection?",
+                severity="major",
+                evaluator=self._check_collection_procedures,
+            )
+        )
 
         # ===== AUTHENTICATION (5 challenges) =====
 
-        self.challenges.append(Challenge(
-            id="AU-001",
-            category=ChallengeCategory.AUTHENTICATION,
-            question="Can you prove this evidence is what you claim it to be?",
-            severity="critical",
-            evaluator=self._check_evidence_identity,
-        ))
+        self.challenges.append(
+            Challenge(
+                id="AU-001",
+                category=ChallengeCategory.AUTHENTICATION,
+                question="Can you prove this evidence is what you claim it to be?",
+                severity="critical",
+                evaluator=self._check_evidence_identity,
+            )
+        )
 
-        self.challenges.append(Challenge(
-            id="AU-002",
-            category=ChallengeCategory.AUTHENTICATION,
-            question="Are the hash values computed correctly and verifiable?",
-            severity="critical",
-            evaluator=self._check_hash_integrity,
-        ))
+        self.challenges.append(
+            Challenge(
+                id="AU-002",
+                category=ChallengeCategory.AUTHENTICATION,
+                question="Are the hash values computed correctly and verifiable?",
+                severity="critical",
+                evaluator=self._check_hash_integrity,
+            )
+        )
 
-        self.challenges.append(Challenge(
-            id="AU-003",
-            category=ChallengeCategory.AUTHENTICATION,
-            question="Has this evidence been altered since collection?",
-            severity="critical",
-            evaluator=self._check_evidence_integrity,
-        ))
+        self.challenges.append(
+            Challenge(
+                id="AU-003",
+                category=ChallengeCategory.AUTHENTICATION,
+                question="Has this evidence been altered since collection?",
+                severity="critical",
+                evaluator=self._check_evidence_integrity,
+            )
+        )
 
-        self.challenges.append(Challenge(
-            id="AU-004",
-            category=ChallengeCategory.AUTHENTICATION,
-            question="Is the forensic tool used validated and reliable?",
-            severity="major",
-            evaluator=self._check_tool_validation,
-        ))
+        self.challenges.append(
+            Challenge(
+                id="AU-004",
+                category=ChallengeCategory.AUTHENTICATION,
+                question="Is the forensic tool used validated and reliable?",
+                severity="major",
+                evaluator=self._check_tool_validation,
+            )
+        )
 
-        self.challenges.append(Challenge(
-            id="AU-005",
-            category=ChallengeCategory.AUTHENTICATION,
-            question="Can the hash algorithm results be independently verified?",
-            severity="major",
-            evaluator=self._check_hash_verifiability,
-        ))
+        self.challenges.append(
+            Challenge(
+                id="AU-005",
+                category=ChallengeCategory.AUTHENTICATION,
+                question="Can the hash algorithm results be independently verified?",
+                severity="major",
+                evaluator=self._check_hash_verifiability,
+            )
+        )
 
         # ===== CHAIN OF CUSTODY (5 challenges) =====
 
-        self.challenges.append(Challenge(
-            id="COC-001",
-            category=ChallengeCategory.CHAIN_OF_CUSTODY,
-            question="Can you account for every person who touched this evidence?",
-            severity="critical",
-            evaluator=self._check_custody_completeness,
-        ))
+        self.challenges.append(
+            Challenge(
+                id="COC-001",
+                category=ChallengeCategory.CHAIN_OF_CUSTODY,
+                question="Can you account for every person who touched this evidence?",
+                severity="critical",
+                evaluator=self._check_custody_completeness,
+            )
+        )
 
-        self.challenges.append(Challenge(
-            id="COC-002",
-            category=ChallengeCategory.CHAIN_OF_CUSTODY,
-            question="Are there unexplained gaps in the custody chain?",
-            severity="critical",
-            evaluator=self._check_custody_gaps,
-        ))
+        self.challenges.append(
+            Challenge(
+                id="COC-002",
+                category=ChallengeCategory.CHAIN_OF_CUSTODY,
+                question="Are there unexplained gaps in the custody chain?",
+                severity="critical",
+                evaluator=self._check_custody_gaps,
+            )
+        )
 
-        self.challenges.append(Challenge(
-            id="COC-003",
-            category=ChallengeCategory.CHAIN_OF_CUSTODY,
-            question="Was the evidence properly secured during storage?",
-            severity="major",
-            evaluator=self._check_storage_security,
-        ))
+        self.challenges.append(
+            Challenge(
+                id="COC-003",
+                category=ChallengeCategory.CHAIN_OF_CUSTODY,
+                question="Was the evidence properly secured during storage?",
+                severity="major",
+                evaluator=self._check_storage_security,
+            )
+        )
 
-        self.challenges.append(Challenge(
-            id="COC-004",
-            category=ChallengeCategory.CHAIN_OF_CUSTODY,
-            question="Is every transfer documented with signatures and timestamps?",
-            severity="major",
-            evaluator=self._check_transfer_documentation,
-        ))
+        self.challenges.append(
+            Challenge(
+                id="COC-004",
+                category=ChallengeCategory.CHAIN_OF_CUSTODY,
+                question="Is every transfer documented with signatures and timestamps?",
+                severity="major",
+                evaluator=self._check_transfer_documentation,
+            )
+        )
 
-        self.challenges.append(Challenge(
-            id="COC-005",
-            category=ChallengeCategory.CHAIN_OF_CUSTODY,
-            question="Has the chain of custody been cryptographically verified?",
-            severity="major",
-            evaluator=self._check_cryptographic_chain,
-        ))
+        self.challenges.append(
+            Challenge(
+                id="COC-005",
+                category=ChallengeCategory.CHAIN_OF_CUSTODY,
+                question="Has the chain of custody been cryptographically verified?",
+                severity="major",
+                evaluator=self._check_cryptographic_chain,
+            )
+        )
 
         # ===== JURISDICTION (5 challenges) =====
 
-        self.challenges.append(Challenge(
-            id="JUR-001",
-            category=ChallengeCategory.JURISDICTION,
-            question="Does this court have jurisdiction over the evidence?",
-            severity="critical",
-            evaluator=self._check_court_jurisdiction,
-        ))
+        self.challenges.append(
+            Challenge(
+                id="JUR-001",
+                category=ChallengeCategory.JURISDICTION,
+                question="Does this court have jurisdiction over the evidence?",
+                severity="critical",
+                evaluator=self._check_court_jurisdiction,
+            )
+        )
 
-        self.challenges.append(Challenge(
-            id="JUR-002",
-            category=ChallengeCategory.JURISDICTION,
-            question="Was international evidence obtained through proper treaty channels?",
-            severity="critical",
-            evaluator=self._check_treaty_compliance,
-        ))
+        self.challenges.append(
+            Challenge(
+                id="JUR-002",
+                category=ChallengeCategory.JURISDICTION,
+                question="Was international evidence obtained through proper treaty channels?",
+                severity="critical",
+                evaluator=self._check_treaty_compliance,
+            )
+        )
 
-        self.challenges.append(Challenge(
-            id="JUR-003",
-            category=ChallengeCategory.JURISDICTION,
-            question="Were cross-border legal requirements satisfied?",
-            severity="major",
-            evaluator=self._check_cross_border_requirements,
-        ))
+        self.challenges.append(
+            Challenge(
+                id="JUR-003",
+                category=ChallengeCategory.JURISDICTION,
+                question="Were cross-border legal requirements satisfied?",
+                severity="major",
+                evaluator=self._check_cross_border_requirements,
+            )
+        )
 
-        self.challenges.append(Challenge(
-            id="JUR-004",
-            category=ChallengeCategory.JURISDICTION,
-            question="Is the permission map properly configured for this jurisdiction?",
-            severity="major",
-            evaluator=self._check_permission_map,
-        ))
+        self.challenges.append(
+            Challenge(
+                id="JUR-004",
+                category=ChallengeCategory.JURISDICTION,
+                question="Is the permission map properly configured for this jurisdiction?",
+                severity="major",
+                evaluator=self._check_permission_map,
+            )
+        )
 
-        self.challenges.append(Challenge(
-            id="JUR-005",
-            category=ChallengeCategory.JURISDICTION,
-            question="Were any jurisdictional objections properly documented?",
-            severity="minor",
-            evaluator=self._check_jurisdictional_objections,
-        ))
+        self.challenges.append(
+            Challenge(
+                id="JUR-005",
+                category=ChallengeCategory.JURISDICTION,
+                question="Were any jurisdictional objections properly documented?",
+                severity="minor",
+                evaluator=self._check_jurisdictional_objections,
+            )
+        )
 
         # ===== DISCLOSURE (5 challenges) =====
 
-        self.challenges.append(Challenge(
-            id="DIS-001",
-            category=ChallengeCategory.DISCLOSURE,
-            question="Has all potentially exculpatory material been identified?",
-            severity="critical",
-            evaluator=self._check_brady_material,
-        ))
+        self.challenges.append(
+            Challenge(
+                id="DIS-001",
+                category=ChallengeCategory.DISCLOSURE,
+                question="Has all potentially exculpatory material been identified?",
+                severity="critical",
+                evaluator=self._check_brady_material,
+            )
+        )
 
-        self.challenges.append(Challenge(
-            id="DIS-002",
-            category=ChallengeCategory.DISCLOSURE,
-            question="Has evidence been made available for defense inspection?",
-            severity="critical",
-            evaluator=self._check_defense_access,
-        ))
+        self.challenges.append(
+            Challenge(
+                id="DIS-002",
+                category=ChallengeCategory.DISCLOSURE,
+                question="Has evidence been made available for defense inspection?",
+                severity="critical",
+                evaluator=self._check_defense_access,
+            )
+        )
 
-        self.challenges.append(Challenge(
-            id="DIS-003",
-            category=ChallengeCategory.DISCLOSURE,
-            question="Are there any privilege claims that need resolution?",
-            severity="major",
-            evaluator=self._check_privilege_claims,
-        ))
+        self.challenges.append(
+            Challenge(
+                id="DIS-003",
+                category=ChallengeCategory.DISCLOSURE,
+                question="Are there any privilege claims that need resolution?",
+                severity="major",
+                evaluator=self._check_privilege_claims,
+            )
+        )
 
-        self.challenges.append(Challenge(
-            id="DIS-004",
-            category=ChallengeCategory.DISCLOSURE,
-            question="Has the defense been notified of all expert witnesses?",
-            severity="major",
-            evaluator=self._check_expert_disclosure,
-        ))
+        self.challenges.append(
+            Challenge(
+                id="DIS-004",
+                category=ChallengeCategory.DISCLOSURE,
+                question="Has the defense been notified of all expert witnesses?",
+                severity="major",
+                evaluator=self._check_expert_disclosure,
+            )
+        )
 
-        self.challenges.append(Challenge(
-            id="DIS-005",
-            category=ChallengeCategory.DISCLOSURE,
-            question="Are all exhibits properly catalogued and available?",
-            severity="minor",
-            evaluator=self._check_exhibit_catalogue,
-        ))
+        self.challenges.append(
+            Challenge(
+                id="DIS-005",
+                category=ChallengeCategory.DISCLOSURE,
+                question="Are all exhibits properly catalogued and available?",
+                severity="minor",
+                evaluator=self._check_exhibit_catalogue,
+            )
+        )
 
         # ===== FOUNDATION (5 challenges) =====
 
-        self.challenges.append(Challenge(
-            id="FND-001",
-            category=ChallengeCategory.FOUNDATION,
-            question="Is there a qualified witness to authenticate this evidence?",
-            severity="critical",
-            evaluator=self._check_witness_available,
-        ))
+        self.challenges.append(
+            Challenge(
+                id="FND-001",
+                category=ChallengeCategory.FOUNDATION,
+                question="Is there a qualified witness to authenticate this evidence?",
+                severity="critical",
+                evaluator=self._check_witness_available,
+            )
+        )
 
-        self.challenges.append(Challenge(
-            id="FND-002",
-            category=ChallengeCategory.FOUNDATION,
-            question="Does the collecting officer have proper training documentation?",
-            severity="major",
-            evaluator=self._check_officer_training,
-        ))
+        self.challenges.append(
+            Challenge(
+                id="FND-002",
+                category=ChallengeCategory.FOUNDATION,
+                question="Does the collecting officer have proper training documentation?",
+                severity="major",
+                evaluator=self._check_officer_training,
+            )
+        )
 
-        self.challenges.append(Challenge(
-            id="FND-003",
-            category=ChallengeCategory.FOUNDATION,
-            question="Is the forensic methodology documented and accepted?",
-            severity="major",
-            evaluator=self._check_methodology_documentation,
-        ))
+        self.challenges.append(
+            Challenge(
+                id="FND-003",
+                category=ChallengeCategory.FOUNDATION,
+                question="Is the forensic methodology documented and accepted?",
+                severity="major",
+                evaluator=self._check_methodology_documentation,
+            )
+        )
 
-        self.challenges.append(Challenge(
-            id="FND-004",
-            category=ChallengeCategory.FOUNDATION,
-            question="Can the system's reliability be demonstrated?",
-            severity="major",
-            evaluator=self._check_system_reliability,
-        ))
+        self.challenges.append(
+            Challenge(
+                id="FND-004",
+                category=ChallengeCategory.FOUNDATION,
+                question="Can the system's reliability be demonstrated?",
+                severity="major",
+                evaluator=self._check_system_reliability,
+            )
+        )
 
-        self.challenges.append(Challenge(
-            id="FND-005",
-            category=ChallengeCategory.FOUNDATION,
-            question="Are error rates known and acceptable?",
-            severity="minor",
-            evaluator=self._check_error_rates,
-        ))
+        self.challenges.append(
+            Challenge(
+                id="FND-005",
+                category=ChallengeCategory.FOUNDATION,
+                question="Are error rates known and acceptable?",
+                severity="minor",
+                evaluator=self._check_error_rates,
+            )
+        )
 
         # ===== TIMELINESS (5 challenges) =====
 
-        self.challenges.append(Challenge(
-            id="TIM-001",
-            category=ChallengeCategory.TIMELINESS,
-            question="Was evidence preserved within acceptable time limits?",
-            severity="critical",
-            evaluator=self._check_preservation_timing,
-        ))
+        self.challenges.append(
+            Challenge(
+                id="TIM-001",
+                category=ChallengeCategory.TIMELINESS,
+                question="Was evidence preserved within acceptable time limits?",
+                severity="critical",
+                evaluator=self._check_preservation_timing,
+            )
+        )
 
-        self.challenges.append(Challenge(
-            id="TIM-002",
-            category=ChallengeCategory.TIMELINESS,
-            question="Is the statute of limitations satisfied?",
-            severity="critical",
-            evaluator=self._check_statute_of_limitations,
-        ))
+        self.challenges.append(
+            Challenge(
+                id="TIM-002",
+                category=ChallengeCategory.TIMELINESS,
+                question="Is the statute of limitations satisfied?",
+                severity="critical",
+                evaluator=self._check_statute_of_limitations,
+            )
+        )
 
-        self.challenges.append(Challenge(
-            id="TIM-003",
-            category=ChallengeCategory.TIMELINESS,
-            question="Were hash computations performed promptly after seizure?",
-            severity="major",
-            evaluator=self._check_hash_timing,
-        ))
+        self.challenges.append(
+            Challenge(
+                id="TIM-003",
+                category=ChallengeCategory.TIMELINESS,
+                question="Were hash computations performed promptly after seizure?",
+                severity="major",
+                evaluator=self._check_hash_timing,
+            )
+        )
 
-        self.challenges.append(Challenge(
-            id="TIM-004",
-            category=ChallengeCategory.TIMELINESS,
-            question="Has evidence been held longer than retention policies allow?",
-            severity="major",
-            evaluator=self._check_retention_policy,
-        ))
+        self.challenges.append(
+            Challenge(
+                id="TIM-004",
+                category=ChallengeCategory.TIMELINESS,
+                question="Has evidence been held longer than retention policies allow?",
+                severity="major",
+                evaluator=self._check_retention_policy,
+            )
+        )
 
-        self.challenges.append(Challenge(
-            id="TIM-005",
-            category=ChallengeCategory.TIMELINESS,
-            question="Were all court deadlines for evidence production met?",
-            severity="minor",
-            evaluator=self._check_production_deadlines,
-        ))
+        self.challenges.append(
+            Challenge(
+                id="TIM-005",
+                category=ChallengeCategory.TIMELINESS,
+                question="Were all court deadlines for evidence production met?",
+                severity="minor",
+                evaluator=self._check_production_deadlines,
+            )
+        )
 
     def evaluate(self, evidence: EvidenceObject) -> dict[str, Any]:
         """
@@ -410,19 +483,12 @@ class DefenseSimulator:
 
         # Check for blocking failures
         blocking_failures = [
-            r for r in results
-            if r["result"] == "fail" and r["severity"] == "critical"
+            r for r in results if r["result"] == "fail" and r["severity"] == "critical"
         ]
 
-        major_failures = [
-            r for r in results
-            if r["result"] == "fail" and r["severity"] == "major"
-        ]
+        major_failures = [r for r in results if r["result"] == "fail" and r["severity"] == "major"]
 
-        warnings = [
-            r for r in results
-            if r["result"] == "warning"
-        ]
+        warnings = [r for r in results if r["result"] == "warning"]
 
         # Calculate score
         total_points = 0
@@ -453,7 +519,9 @@ class DefenseSimulator:
             "warnings": warnings,
             "results_by_category": by_category,
             "category_scores": self._compute_category_scores(by_category),
-            "recommendation": self._generate_recommendation(passed, blocking_failures, major_failures, warnings),
+            "recommendation": self._generate_recommendation(
+                passed, blocking_failures, major_failures, warnings
+            ),
         }
 
     def _compute_category_scores(self, by_category: dict[str, list[dict]]) -> dict[str, dict]:
@@ -623,7 +691,9 @@ class DefenseSimulator:
         # This would check storage metadata in a full implementation
         return ChallengeResult.PASS, "Storage security assumed (implementation pending)"
 
-    def _check_transfer_documentation(self, evidence: EvidenceObject) -> tuple[ChallengeResult, str]:
+    def _check_transfer_documentation(
+        self, evidence: EvidenceObject
+    ) -> tuple[ChallengeResult, str]:
         """Check if transfers are documented."""
         transfers = [e for e in evidence.chain_of_custody if e.get("action") == "transferred"]
         if not transfers:
@@ -668,7 +738,9 @@ class DefenseSimulator:
 
         return ChallengeResult.PASS, "No treaty requirements"
 
-    def _check_cross_border_requirements(self, evidence: EvidenceObject) -> tuple[ChallengeResult, str]:
+    def _check_cross_border_requirements(
+        self, evidence: EvidenceObject
+    ) -> tuple[ChallengeResult, str]:
         """Check cross-border legal requirements."""
         if not evidence.jurisdiction:
             return ChallengeResult.WARNING, "Jurisdiction not specified"
@@ -687,9 +759,14 @@ class DefenseSimulator:
             return ChallengeResult.FAIL, "No jurisdiction/permission map"
         if not evidence.jurisdiction.can_export_evidence:
             return ChallengeResult.WARNING, "No agencies authorized for export"
-        return ChallengeResult.PASS, f"{len(evidence.jurisdiction.can_export_evidence)} agency/ies authorized"
+        return (
+            ChallengeResult.PASS,
+            f"{len(evidence.jurisdiction.can_export_evidence)} agency/ies authorized",
+        )
 
-    def _check_jurisdictional_objections(self, _evidence: EvidenceObject) -> tuple[ChallengeResult, str]:
+    def _check_jurisdictional_objections(
+        self, _evidence: EvidenceObject
+    ) -> tuple[ChallengeResult, str]:
         """Check for jurisdictional objections."""
         # This would check for logged objections in full implementation
         return ChallengeResult.PASS, "No jurisdictional objections recorded"
@@ -721,7 +798,10 @@ class DefenseSimulator:
     def _check_witness_available(self, evidence: EvidenceObject) -> tuple[ChallengeResult, str]:
         """Check if authenticating witness is available."""
         if evidence.collection_details.officer_id:
-            return ChallengeResult.PASS, f"Collecting officer: {evidence.collection_details.officer_name}"
+            return (
+                ChallengeResult.PASS,
+                f"Collecting officer: {evidence.collection_details.officer_name}",
+            )
         return ChallengeResult.FAIL, "No collecting officer identified"
 
     def _check_officer_training(self, _evidence: EvidenceObject) -> tuple[ChallengeResult, str]:
@@ -729,7 +809,9 @@ class DefenseSimulator:
         # This would check training records in full implementation
         return ChallengeResult.PASS, "Training assumed verified (implementation pending)"
 
-    def _check_methodology_documentation(self, evidence: EvidenceObject) -> tuple[ChallengeResult, str]:
+    def _check_methodology_documentation(
+        self, evidence: EvidenceObject
+    ) -> tuple[ChallengeResult, str]:
         """Check if methodology is documented."""
         if evidence.collection_details.tool_used:
             return ChallengeResult.PASS, f"Methodology: {evidence.collection_details.tool_used}"
@@ -757,11 +839,16 @@ class DefenseSimulator:
         if delay_hours > 48:
             return ChallengeResult.FAIL, f"Hash computed {delay_hours:.1f} hours after collection"
         elif delay_hours > 24:
-            return ChallengeResult.WARNING, f"Hash computed {delay_hours:.1f} hours after collection"
+            return (
+                ChallengeResult.WARNING,
+                f"Hash computed {delay_hours:.1f} hours after collection",
+            )
 
         return ChallengeResult.PASS, f"Hash computed {delay_hours:.1f} hours after collection"
 
-    def _check_statute_of_limitations(self, _evidence: EvidenceObject) -> tuple[ChallengeResult, str]:
+    def _check_statute_of_limitations(
+        self, _evidence: EvidenceObject
+    ) -> tuple[ChallengeResult, str]:
         """Check statute of limitations."""
         # CSAM offenses typically have long or no statute of limitations
         return ChallengeResult.PASS, "CSAM offenses have extended limitations periods"
