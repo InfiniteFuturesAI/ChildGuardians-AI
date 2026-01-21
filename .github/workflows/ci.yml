@@ -185,7 +185,7 @@ jobs:
     
     services:
       api:
-        image: ghcr.io/infinitefuturesai/childgaurdians-ai:${{ github.sha }}
+        image: ghcr.io/infinitefuturesai/childgaurdians-ai:main
         ports:
           - 8000:8000
         options: >-
