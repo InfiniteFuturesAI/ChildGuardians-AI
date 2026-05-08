@@ -133,6 +133,11 @@ class TestConfig:
         assert config.data_dir == Path("data")
         assert config.evidence_dir == Path("data/evidence")
 
+    def test_cors_origins_default_is_empty(self):
+        """Test CORS default is same-origin only (empty list)."""
+        config = Config()
+        assert config.cors_origins == []
+
     def test_from_env_defaults(self):
         """Test from_env with no environment variables set."""
         reset_config()
@@ -208,6 +213,27 @@ class TestConfigValidation:
         config.environment = "development"
         errors = config.validate()
         assert errors == []
+
+    def test_cors_origins_wildcard_rejected_in_any_environment(self):
+        """Test wildcard CORS is rejected across environments."""
+        config = Config()
+        config.cors_origins = ["*"]
+        config.environment = "development"
+        errors = config.validate()
+        assert any("CORS_ORIGINS" in e for e in errors)
+
+        config.environment = "production"
+        config.security.secret_key = "x" * 64
+        config.security.allowed_hosts = ["api.example.gov"]
+        errors = config.validate()
+        assert any("CORS_ORIGINS" in e for e in errors)
+
+    def test_cors_origins_explicit_list_accepted(self):
+        """Test explicit CORS origins are accepted."""
+        config = Config()
+        config.cors_origins = ["https://api.example.gov"]
+        errors = config.validate()
+        assert not any("CORS_ORIGINS" in e for e in errors)
 
     def test_validate_production_missing_secret(self):
         """Test that production config requires SECRET_KEY."""

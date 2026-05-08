@@ -82,7 +82,7 @@ class Config:
 
     # API settings
     api_prefix: str = "/api/v1"
-    cors_origins: list[str] = field(default_factory=lambda: ["*"])
+    cors_origins: list[str] = field(default_factory=list)
 
     # Data directories
     data_dir: Path = field(default_factory=lambda: Path("data"))
@@ -137,6 +137,9 @@ class Config:
     def validate(self) -> list[str]:
         """Validate configuration, returning list of errors."""
         errors = []
+
+        if "*" in self.cors_origins:
+            errors.append("CORS_ORIGINS must not contain '*' — list explicit origins or leave empty")
 
         if self.environment == "production":
             if not self.security.secret_key:

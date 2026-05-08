@@ -347,6 +347,17 @@ class TestAPI:
 
         assert response.status_code == 422  # Validation error for missing headers
 
+    def test_cors_middleware_absent_with_empty_origins(self, client):
+        """Default config has no CORS origins; preflight should not return CORS headers."""
+        response = client.options(
+            "/health",
+            headers={
+                "Origin": "https://attacker.example.com",
+                "Access-Control-Request-Method": "GET",
+            },
+        )
+        assert "access-control-allow-origin" not in {k.lower() for k in response.headers}
+
 
 class TestAPIAudit:
     """Tests for API audit functionality."""

@@ -414,32 +414,64 @@ class EvidenceObject:
     def _log_custody_event(
         self, action: str, actor: str, details: dict[str, Any] | None = None
     ) -> None:
-        """Record an event in the chain of custody."""
-        event = {
+        """Record an event in the chain of custody with content-sensitive hash chain."""
+        if self.chain_of_custody:
+            hash_before = self.chain_of_custody[-1].get("hash_after", "")
+        else:
+            hash_before = self._genesis_hash()
+
+        event: dict[str, Any] = {
             "timestamp": datetime.now(UTC).isoformat(),
             "action": action,
             "actor": actor,
             "evidence_id": self.evidence_id,
-            "hash_before": self._compute_state_hash(),
+            "hash_before": hash_before,
         }
         if details:
             event["details"] = details
 
+        # hash_after commits to all event content above (including hash_before).
+        # Tampering with any field invalidates this hash.
+        event["hash_after"] = hashlib.sha256(
+            json.dumps(event, sort_keys=True).encode()
+        ).hexdigest()
+
         self.chain_of_custody.append(event)
 
-        # Update hash_after
-        event["hash_after"] = self._compute_state_hash()
-
-    def _compute_state_hash(self) -> str:
-        """Compute hash of current evidence state."""
-        state = {
+    def _genesis_hash(self) -> str:
+        """Genesis hash anchoring the custody chain to immutable evidence identity."""
+        genesis_state = {
             "evidence_id": self.evidence_id,
             "case_number": self.case_number,
-            "status": self.status.value,
-            "material_hashes": [h.to_dict() for h in self.material_hashes],
-            "custody_count": len(self.chain_of_custody),
+            "evidence_type": self.evidence_type,
         }
-        return hashlib.sha256(json.dumps(state, sort_keys=True).encode()).hexdigest()[:16]
+        return hashlib.sha256(json.dumps(genesis_state, sort_keys=True).encode()).hexdigest()
+
+    def verify_custody_chain(self) -> bool:
+        """
+        Verify the custody chain is unbroken and content-intact.
+
+        Returns False if any event was tampered with, the order changed,
+        or an event was inserted or removed.
+        """
+        if not self.chain_of_custody:
+            return True
+
+        expected_prev = self._genesis_hash()
+        for event in self.chain_of_custody:
+            if event.get("hash_before") != expected_prev:
+                return False
+
+            event_for_hash = {k: v for k, v in event.items() if k != "hash_after"}
+            recomputed = hashlib.sha256(
+                json.dumps(event_for_hash, sort_keys=True).encode()
+            ).hexdigest()
+            if recomputed != event.get("hash_after"):
+                return False
+
+            expected_prev = event["hash_after"]
+
+        return True
 
     def _serialize_for_hashing(self) -> str:
         """Serialize evidence for content hash computation."""
@@ -495,6 +527,7 @@ class EvidenceObject:
             "pre_flight_results": self.pre_flight_results,
             "defense_simulation_results": self.defense_simulation_results,
             "content_hash": self._content_hash,
+            "seal_signature": self._seal_signature.hex() if self._seal_signature else None,
         }
 
     @classmethod
@@ -520,5 +553,8 @@ class EvidenceObject:
         obj.pre_flight_results = data.get("pre_flight_results")
         obj.defense_simulation_results = data.get("defense_simulation_results")
         obj._content_hash = data.get("content_hash")
+        obj._seal_signature = (
+            bytes.fromhex(data["seal_signature"]) if data.get("seal_signature") else None
+        )
 
         return obj

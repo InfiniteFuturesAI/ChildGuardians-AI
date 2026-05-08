@@ -17,6 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
+from child_guardians.config import get_config
 from child_guardians.core.chain_of_custody import ChainOfCustody, CustodyAction
 from child_guardians.core.defense_simulator import DefenseSimulator
 from child_guardians.core.evidence_object import (
@@ -82,14 +83,25 @@ app = FastAPI(
     redoc_url="/api/redoc",
 )
 
-# CORS configuration - restrict in production
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Restrict in production
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# CORS configuration: default closed, explicit allowlist only
+_cfg = get_config()
+if _cfg.cors_origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=_cfg.cors_origins,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=[
+            "Authorization",
+            "Content-Type",
+            "X-Agency-ID",
+            "X-Officer-ID",
+            "X-Officer-Name",
+            "X-Badge-Number",
+        ],
+    )
+else:
+    logger.info("CORS not configured; same-origin only")
 
 
 # ===== Request/Response Models =====

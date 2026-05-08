@@ -236,6 +236,27 @@ class TestEvidenceObject:
         assert restored.case_number == evidence_object.case_number
         assert len(restored.material_hashes) == len(evidence_object.material_hashes)
 
+    def test_sealed_serialization_roundtrip_verify(self, evidence_object):
+        """Test sealed evidence remains verifiable after serialization round-trip."""
+        material_hash = MaterialHash(
+            hash_type="sha256",
+            hash_value="abc123def456" * 4,
+            source_file="image001.jpg",
+            source_path="/evidence/seized/image001.jpg",
+            computed_by="OFF-001",
+        )
+        evidence_object.add_material_hash(material_hash)
+        evidence_object.validate()
+
+        private_key = ed25519.Ed25519PrivateKey.generate()
+        public_key = private_key.public_key()
+        evidence_object.seal(private_key, "OFF-001")
+
+        restored = EvidenceObject.from_dict(evidence_object.to_dict())
+
+        assert restored.status == EvidenceStatus.SEALED
+        assert restored.verify_seal(public_key) is True
+
     def test_custody_gap_detection(self, evidence_object):
         """Test detection of custody gaps."""
         # Manually create a gap
@@ -251,6 +272,130 @@ class TestEvidenceObject:
 
         assert len(gaps) >= 1
         assert any(g["duration"] > 12 for g in gaps)
+
+
+class TestCustodyChain:
+    """Tests for content-sensitive chain-of-custody hash chain."""
+
+    @pytest.fixture
+    def valid_legal_basis(self):
+        return LegalBasis(
+            basis_type=LegalBasisType.WARRANT,
+            reference="2024-WARRANT-12345",
+            issued_by="Judge Smith",
+            issued_date=datetime.now(UTC) - timedelta(days=1),
+            scope="Digital devices at 123 Main St",
+            expires=datetime.now(UTC) + timedelta(days=30),
+        )
+
+    @pytest.fixture
+    def valid_collection_details(self):
+        return CollectionDetails(
+            officer_id="OFF-001",
+            officer_name="John Doe",
+            badge_number="12345",
+            agency="FBI",
+            agency_unit="Cyber Division",
+            collection_time=datetime.now(UTC),
+            collection_location="123 Main St, Anytown, USA",
+            tool_used="FTK Imager",
+            tool_version="4.7.1",
+            tool_hash="abc123def456",
+            witness_present=True,
+            witness_name="Jane Smith",
+        )
+
+    @pytest.fixture
+    def valid_jurisdiction(self):
+        return JurisdictionMap(
+            primary_jurisdiction="US-VA",
+            hosting_country="US",
+            victim_country="US",
+            can_view_metadata=["FBI", "NCMEC"],
+            can_view_hashes=["FBI", "NCMEC", "INTERPOL"],
+            can_export_evidence=["FBI"],
+            can_initiate_prosecution=["FBI"],
+        )
+
+    @pytest.fixture
+    def evidence_object(self, valid_legal_basis, valid_collection_details, valid_jurisdiction):
+        return EvidenceObject(
+            case_number="CASE-2024-001",
+            evidence_type="digital_image",
+            legal_basis=valid_legal_basis,
+            collection_details=valid_collection_details,
+            jurisdiction=valid_jurisdiction,
+        )
+
+    def test_chain_valid_after_normal_operations(self, evidence_object, valid_collection_details):
+        material = MaterialHash(
+            hash_type="sha256",
+            hash_value="a" * 64,
+            source_file="demo.bin",
+            source_path="/tmp/demo.bin",
+            computed_by=valid_collection_details.officer_id,
+        )
+        evidence_object.add_material_hash(material)
+        evidence_object.validate()
+        assert evidence_object.verify_custody_chain() is True
+
+    def test_chain_detects_actor_tampering(self, evidence_object):
+        evidence_object.validate()
+        evidence_object.chain_of_custody[0]["actor"] = "MALICIOUS"
+        assert evidence_object.verify_custody_chain() is False
+
+    def test_chain_detects_action_tampering(self, evidence_object):
+        evidence_object.validate()
+        evidence_object.chain_of_custody[0]["action"] = "spoofed_action"
+        assert evidence_object.verify_custody_chain() is False
+
+    def test_chain_detects_details_tampering(self, evidence_object, valid_collection_details):
+        material = MaterialHash(
+            hash_type="sha256",
+            hash_value="b" * 64,
+            source_file="demo.bin",
+            source_path="/tmp/demo.bin",
+            computed_by=valid_collection_details.officer_id,
+        )
+        evidence_object.add_material_hash(material)
+        # Locate the hash_added event and tamper with its details.
+        hash_event = next(e for e in evidence_object.chain_of_custody if e["action"] == "hash_added")
+        hash_event["details"]["hash_type"] = "md5"
+        assert evidence_object.verify_custody_chain() is False
+
+    def test_chain_detects_event_reordering(self, evidence_object, valid_collection_details):
+        material = MaterialHash(
+            hash_type="sha256",
+            hash_value="c" * 64,
+            source_file="demo.bin",
+            source_path="/tmp/demo.bin",
+            computed_by=valid_collection_details.officer_id,
+        )
+        evidence_object.add_material_hash(material)
+        evidence_object.validate()
+        # Swap two adjacent events.
+        coc = evidence_object.chain_of_custody
+        coc[1], coc[2] = coc[2], coc[1]
+        assert evidence_object.verify_custody_chain() is False
+
+    def test_chain_detects_inserted_event(self, evidence_object):
+        evidence_object.validate()
+        forged = {
+            "timestamp": datetime.now(UTC).isoformat(),
+            "action": "forged_event",
+            "actor": "attacker",
+            "evidence_id": evidence_object.evidence_id,
+            "hash_before": "0" * 64,
+            "hash_after": "f" * 64,
+        }
+        evidence_object.chain_of_custody.insert(1, forged)
+        assert evidence_object.verify_custody_chain() is False
+
+    def test_chain_survives_serialization_roundtrip(self, evidence_object):
+        evidence_object.validate()
+        data = evidence_object.to_dict()
+        restored = EvidenceObject.from_dict(data)
+        assert restored.verify_custody_chain() is True
 
 
 class TestLegalBasis:

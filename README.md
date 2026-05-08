@@ -114,6 +114,16 @@ See: [Evidence Object Specification](./specs/EVIDENCE_OBJECT.md)
 
 **No government has to trust you — only the design.**
 
+## Architectural Lineage
+
+CHILD GUARDIANS AI is developed as an **Infinite Futures** public-interest system and implements the same governance primitives used across the broader Infinite Futures architecture:
+- Evidence-first contracts with cryptographic integrity
+- Failure-proof-by-design guardrails for high-stakes workflows
+- Independent oversight and append-only accountability records
+- Adversarial pre-export validation to prevent courtroom failure modes
+
+This repository is an external, domain-specific reference implementation of those primitives for child protection and legal admissibility contexts.
+
 ## License
 
 This project is licensed under the **PolyForm Noncommercial License 1.0.0**.

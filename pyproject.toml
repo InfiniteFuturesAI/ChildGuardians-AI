@@ -3,16 +3,17 @@ name = "child-guardians"
 version = "0.1.0"
 description = "Evidence management system for law enforcement child protection investigations"
 readme = "README.md"
-license = {text = "Public Domain"}
+license = {text = "PolyForm Noncommercial License 1.0.0"}
 requires-python = ">=3.11"
 authors = [
-    {name = "CHILD GUARDIANS Project"}
+    {name = "CHILD GUARDIANS Project"},
+    {name = "Infinite Futures"}
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "Intended Audience :: Legal Industry",
-    "License :: Public Domain",
+    "License :: Other/Proprietary License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
@@ -50,10 +51,10 @@ docs = [
 child-guardians = "child_guardians.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/child-guardians/child-guardians"
-Documentation = "https://child-guardians.github.io/child-guardians"
-Repository = "https://github.com/child-guardians/child-guardians"
-Issues = "https://github.com/child-guardians/child-guardians/issues"
+Homepage = "https://github.com/InfiniteFuturesAI/ChildGuardians-AI"
+Documentation = "https://github.com/InfiniteFuturesAI/ChildGuardians-AI/tree/main/docs"
+Repository = "https://github.com/InfiniteFuturesAI/ChildGuardians-AI"
+Issues = "https://github.com/InfiniteFuturesAI/ChildGuardians-AI/issues"
 
 [build-system]
 requires = ["hatchling"]
